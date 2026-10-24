@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atspėk užklausą</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --muted: #5f6670;
+    --line: #d9d4c9;
+    --accent: #2f6fdb;
+    --ok: #1f9d6b;
+    --bad: #d6336c;
+    --neon: #c026d3;
+    --mark-invented: rgba(214, 51, 108, .22);
+    --mark-generic: rgba(234, 179, 8, .32);
+    --mark-fact: rgba(31, 157, 107, .22);
+    --shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+      --line: #3a3f46; --shadow: 0 2px 6px rgba(0,0,0,.5);
+      --mark-invented: rgba(244, 114, 182, .3); --mark-generic: rgba(250, 204, 21, .28); --mark-fact: rgba(52, 211, 153, .25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+    --line: #3a3f46; --shadow: 0 2px 6px rgba(0,0,0,.5);
+    --mark-invented: rgba(244, 114, 182, .3); --mark-generic: rgba(250, 204, 21, .28); --mark-fact: rgba(52, 211, 153, .25);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  header .tag { color: var(--muted); font-size: 14px; letter-spacing: .02em; }
+  h1 { margin: 4px 0 6px; font-size: clamp(26px, 4vw, 36px); }
+  .lead { margin: 0 0 16px; color: var(--muted); max-width: 62ch; }
+  .steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+  .steps li {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 14px; font-size: 15px;
+  }
+  .steps b { color: var(--accent); margin-right: 4px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  button {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); padding: 8px 14px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .timer { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .timer.over { color: var(--bad); }
+
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+
+  .invite {
+    display: flex; flex-direction: column; background: var(--surface); border: 2px solid var(--line);
+    border-radius: 16px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .invite.chosen { border-color: var(--accent); }
+  .invite.right { border-color: var(--ok); }
+  .invite.wrong { border-color: var(--bad); }
+  .invite-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 10px 16px; border-bottom: 1px solid var(--line);
+  }
+  .invite-head h2 { margin: 0; font-size: 18px; }
+  .logo {
+    font-weight: 800; letter-spacing: .06em; color: var(--neon);
+    text-shadow: 0 0 6px color-mix(in srgb, var(--neon) 45%, transparent);
+  }
+  .invite-body { padding: 14px 16px; flex: 1; }
+  .invite-body p { margin: 0 0 10px; }
+  .invite-body ul { margin: 0 0 10px; padding-left: 0; list-style: none; }
+  .invite-body li { margin: 2px 0; }
+  .pick {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line);
+    cursor: pointer; font-weight: 600;
+  }
+  .pick input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+  mark { background: transparent; color: inherit; border-radius: 4px; padding: 0 2px; }
+  .show-marks mark.invented { background: var(--mark-invented); }
+  .show-marks mark.generic { background: var(--mark-generic); }
+  .show-marks mark.fact { background: var(--mark-fact); }
+
+  .prompt {
+    margin: 0 16px 14px; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--line);
+    font-size: 14px; background: var(--bg);
+  }
+  .prompt b { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .prompt dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 8px; }
+  .prompt dt { font-weight: 600; }
+  .prompt dd { margin: 0; }
+
+  .panel {
+    margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+  }
+  .panel h2 { margin: 0 0 8px; font-size: 18px; }
+  .signs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 760px) { .signs { grid-template-columns: 1fr; } }
+  .signs label { display: block; font-weight: 600; margin-bottom: 4px; }
+  input[type="text"], textarea {
+    width: 100%; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  textarea { min-height: 70px; }
+  .hint { color: var(--muted); font-size: 14px; }
+  .verdict { font-size: 18px; font-weight: 700; margin: 0 0 8px; }
+  .verdict.ok { color: var(--ok); }
+  .verdict.bad { color: var(--bad); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0 12px; font-size: 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  .panel ul { margin: 6px 0 0; padding-left: 20px; }
+  .panel li { margin: 4px 0; }
+  .remember {
+    margin-top: 16px; border-left: 4px solid var(--accent); padding: 12px 16px; background: var(--surface);
+    border-radius: 0 14px 14px 0; font-size: 18px;
+  }
+  .remember small { display: block; color: var(--muted); font-size: 13px; margin-bottom: 2px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="tag">2 tema · I dalis · Žaidimas · 3 min</div>
+    <h1>Atspėk užklausą</h1>
+    <p class="lead">Sporto klubas <b>NeonZ</b> paprašė DI parašyti kvietimą. Vieną kvietimą DI parašė iš <b>trumpos</b> užklausos, kitą – iš <b>išsamios</b>. Kuris kuris?</p>
+  </header>
+
+  <ol class="steps">
+    <li><b>1</b>Perskaityk abu kvietimus</li>
+    <li><b>2</b>Pažymėk, kuris gautas iš trumpos užklausos</li>
+    <li><b>3</b>Užrašyk 2 požymius</li>
+  </ol>
+
+  <div class="toolbar">
+    <button id="startTimer" type="button">▶ Pradėti 3 min</button>
+    <button id="reset" type="button">Iš naujo</button>
+    <span class="timer" id="timer">3:00</span>
+  </div>
+
+  <div class="pair" id="pair">
+    <article class="invite" id="inviteA">
+      <div class="invite-head"><h2>Kvietimas A</h2><span class="logo">NEONZ</span></div>
+      <div class="invite-body">
+        <p><b>🔥 <mark class="generic">Prisijunk prie NeonZ – sporto klubo, kuris pakeis tavo gyvenimą!</mark> 💪</b></p>
+        <p><mark class="generic">Ieškai vietos, kur galėtum pasiekti savo tikslus? NeonZ – tai daugiau nei sporto klubas. Tai bendruomenė, kurioje kiekvienas jaučiasi laukiamas.</mark> Mūsų <mark class="invented">patyrę treneriai, moderni įranga</mark> ir <mark class="generic">įkvepianti atmosfera padės tau tapti geriausia savo versija.</mark></p>
+        <ul>
+          <li>✅ <mark class="invented">Treniruotės visiems lygiams</mark></li>
+          <li>✅ <mark class="invented">Grupiniai užsiėmimai ir individualūs planai</mark></li>
+          <li>✅ <mark class="invented">Pirmas mėnuo – nemokamai!</mark></li>
+        </ul>
+        <p><mark class="generic">Nelauk rytojaus – pradėk šiandien!</mark> <mark class="generic">Užsuk pas mus ir įsitikink pats.</mark> NeonZ – <mark class="generic">tavo energija, tavo taisyklės!</mark> ⚡</p>
+      </div>
+      <div class="prompt" hidden>
+        <b>Užklausa (trumpa)</b>
+        „Parašyk kvietimą į sporto klubą NeonZ.“
+      </div>
+      <label class="pick"><input type="radio" name="short" value="A"> Šis – iš trumpos užklausos</label>
+    </article>
+
+    <article class="invite" id="inviteB">
+      <div class="invite-head"><h2>Kvietimas B</h2><span class="logo">NEONZ</span></div>
+      <div class="invite-body">
+        <p><b><mark class="fact">Ar kada žaidei dodžbolą tamsoje?</mark></b></p>
+        <p>NeonZ kviečia į <mark class="fact">atvirą treniruotę</mark>! <mark class="fact">Užgesinsime šviesas, išdalinsime šviečiančias apyrankes ir žaisime neoniniais kamuoliais.</mark></p>
+        <ul>
+          <li>📅 <mark class="fact">Lapkričio 5 d., ketvirtadienį, 16:00–17:30</mark></li>
+          <li>📍 <mark class="fact">JKM sporto salė</mark></li>
+          <li>👟 Atsinešk: <mark class="fact">sportinius batelius ir vandens</mark></li>
+        </ul>
+        <p><mark class="fact">Patirties nereikia</mark> – ateik <mark class="fact">vienas arba su draugais</mark>.</p>
+        <p><b>Registruokis <mark class="fact">iki lapkričio 3 d. pas kūno kultūros mokytoją</mark>.</b></p>
+      </div>
+      <div class="prompt" hidden>
+        <b>Užklausa (išsami – 5 dalys)</b>
+        <dl>
+          <dt>Tikslas</dt><dd>Parašyk kvietimą į NeonZ atvirą treniruotę, kad mokiniai ateitų išbandyti.</dd>
+          <dt>Kontekstas</dt><dd>NeonZ – mokyklos sporto klubas: dodžbolas tamsoje su neoniniais kamuoliais ir šviečiančiomis apyrankėmis. Lapkričio 5 d., ketvirtadienį, 16:00–17:30, JKM sporto salėje. Atsinešti sportinius batelius ir vandens. Patirties nereikia, galima vienam ar su draugais. Registracija iki lapkričio 3 d. pas kūno kultūros mokytoją.</dd>
+          <dt>Auditorija</dt><dd>9–12 kl. mokiniai; skaitys skelbimų lentoje ir klasės pokalbyje.</dd>
+          <dt>Formatas</dt><dd>Iki 80 žodžių, draugiškas tonas, pabaigoje – kaip registruotis. Nieko neprisigalvok.</dd>
+          <dt>Pavyzdys</dt><dd>Pradėk klausimu, pvz.: „Ar kada…?“</dd>
+        </dl>
+      </div>
+      <label class="pick"><input type="radio" name="short" value="B"> Šis – iš trumpos užklausos</label>
+    </article>
+  </div>
+
+  <section class="panel">
+    <h2>Iš ko supratai? Užrašyk 2 požymius</h2>
+    <div class="signs">
+      <div><label for="sign1">Požymis 1</label><input type="text" id="sign1" placeholder="Pvz.: nėra…"></div>
+      <div><label for="sign2">Požymis 2</label><input type="text" id="sign2" placeholder="Pvz.: tiktų…"></div>
+    </div>
+    <p class="hint" id="checkHint">Pasirink kvietimą ir užrašyk abu požymius – tada galėsi pasitikrinti.</p>
+    <button id="check" class="primary" type="button" disabled>Tikrinti</button>
+  </section>
+
+  <section class="panel" id="result" hidden>
+    <p class="verdict" id="verdict"></p>
+    <p>Kvietimas A gautas iš užklausos <b>„Parašyk kvietimą į sporto klubą NeonZ.“</b> Abi užklausos dabar matomos po kvietimais.</p>
+    <div class="legend">
+      <span><i style="background: var(--mark-invented)"></i>DI prisigalvojo – užklausoje nebuvo</span>
+      <span><i style="background: var(--mark-generic)"></i>Tuščia frazė – tiktų bet kuriam klubui</span>
+      <span><i style="background: var(--mark-fact)"></i>Faktas iš užklausos</span>
+    </div>
+    <b>Trumpos užklausos požymiai:</b>
+    <ul>
+      <li>Nėra konkrečių faktų: <b>kada? kur? kam? kaip užsiregistruoti?</b></li>
+      <li>Tuščios, skambios frazės, kurios tiktų bet kuriam sporto klubui</li>
+      <li>DI <b>prisigalvojo</b> faktų – pvz., „Pirmas mėnuo – nemokamai!“ Ar klubas tikrai tai žada?</li>
+      <li>Neaišku, kam rašoma – tonas kaip suaugusiųjų sporto klubo reklamos</li>
+      <li>Daug šauktukų ir jaustukų vietoje informacijos</li>
+    </ul>
+    <p><b>Palygink su savo požymiais:</b> <span id="yourSigns"></span></p>
+    <label for="discuss"><b>Aptarkite:</b> kas kvietime A atsirado, nors užklausoje to nebuvo? Iš kur DI tai paėmė?</label>
+    <textarea id="discuss" placeholder="Jūsų mintys…"></textarea>
+  </section>
+
+  <div class="remember" id="remember" hidden>
+    <small>Atsimink</small>
+    Ko nepasakei – DI spėja. Be konteksto gauni vidutinį tekstą.
+  </div>
+</main>
+
+<script>
+const KEY = "jkm-02-atspek-uzklausa";
+const SHORT = "A";
+const radios = [...document.querySelectorAll('input[name="short"]')];
+const sign1 = document.getElementById("sign1");
+const sign2 = document.getElementById("sign2");
+const discuss = document.getElementById("discuss");
+const checkBtn = document.getElementById("check");
+const pair = document.getElementById("pair");
+let checked = false;
+
+function choice() {
+  const r = radios.find(r => r.checked);
+  return r ? r.value : null;
+}
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (!s) return;
+    radios.forEach(r => { r.checked = r.value === s.choice; });
+    sign1.value = s.sign1 || "";
+    sign2.value = s.sign2 || "";
+    discuss.value = s.discuss || "";
+    checked = !!s.checked;
+  } catch (e) {}
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      choice: choice(), sign1: sign1.value, sign2: sign2.value, discuss: discuss.value, checked
+    }));
+  } catch (e) {}
+}
+
+function render() {
+  const c = choice();
+  const ready = c && sign1.value.trim() && sign2.value.trim();
+  checkBtn.disabled = !ready || checked;
+  document.getElementById("checkHint").hidden = !!ready || checked;
+  ["A", "B"].forEach(id => {
+    const el = document.getElementById("invite" + id);
+    el.classList.toggle("chosen", !checked && c === id);
+    el.classList.toggle("right", checked && id === SHORT);
+    el.classList.toggle("wrong", checked && c === id && id !== SHORT);
+    el.querySelector(".prompt").hidden = !checked;
+  });
+  radios.forEach(r => { r.disabled = checked; });
+  pair.classList.toggle("show-marks", checked);
+  document.getElementById("result").hidden = !checked;
+  document.getElementById("remember").hidden = !checked;
+  if (checked) {
+    const v = document.getElementById("verdict");
+    v.textContent = c === SHORT ? "Teisingai! Kvietimas A – iš trumpos užklausos." : "Ne visai – iš trumpos užklausos gautas kvietimas A.";
+    v.className = "verdict " + (c === SHORT ? "ok" : "bad");
+    document.getElementById("yourSigns").textContent = `„${sign1.value.trim()}“ ir „${sign2.value.trim()}“. Kuriuos iš jų matai sąraše?`;
+  }
+}
+
+radios.forEach(r => r.addEventListener("change", () => { render(); save(); }));
+[sign1, sign2].forEach(i => i.addEventListener("input", () => { render(); save(); }));
+discuss.addEventListener("input", save);
+checkBtn.addEventListener("click", () => {
+  checked = true; render(); save();
+  document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("Pradėti iš naujo? Atsakymai bus ištrinti.")) return;
+  radios.forEach(r => { r.checked = false; });
+  sign1.value = sign2.value = discuss.value = "";
+  checked = false; stopTimer(); render(); save();
+});
+
+// 3 min laikmatis
+let timerId = null;
+const timerEl = document.getElementById("timer");
+const startBtn = document.getElementById("startTimer");
+function stopTimer() {
+  clearInterval(timerId); timerId = null;
+  timerEl.textContent = "3:00"; timerEl.classList.remove("over");
+  startBtn.textContent = "▶ Pradėti 3 min";
+}
+startBtn.addEventListener("click", () => {
+  if (timerId) return stopTimer();
+  const end = Date.now() + 3 * 60 * 1000;
+  startBtn.textContent = "■ Sustabdyti";
+  const tick = () => {
+    const left = Math.round((end - Date.now()) / 1000);
+    const a = Math.abs(left);
+    timerEl.textContent = (left < 0 ? "−" : "") + Math.floor(a / 60) + ":" + String(a % 60).padStart(2, "0");
+    timerEl.classList.toggle("over", left < 0);
+  };
+  tick(); timerId = setInterval(tick, 500);
+});
+
+load();
+render();
+</script>
+</body>
+</html>
