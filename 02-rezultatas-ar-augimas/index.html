@@ -174,6 +174,12 @@
     </div>
   </div>
 
+  <section class="panel">
+    <h2><label for="notes">Dėl kurių situacijų nesutariate ir kodėl?</label></h2>
+    <p class="hint">Užsirašykite kortelės numerį ir abiejų nuomones.</p>
+    <textarea id="notes" placeholder="Pvz.: 7 – aš manau…, nes…; draugas mano…, nes…"></textarea>
+  </section>
+
   <section class="panel" id="summary" hidden>
     <h2>Aptarkite</h2>
     <p class="hint" id="countLine"></p>
@@ -211,6 +217,7 @@ const tray = document.getElementById("tray");
 const board = document.getElementById("board");
 const revealBtn = document.getElementById("reveal");
 const answer = document.getElementById("answer");
+const notes = document.getElementById("notes");
 
 // state[i] = { x, y, flag } with x,y in 0..1 (null when in tray)
 let state = load() || CARDS.map(() => ({ x: null, y: null, flag: false }));
@@ -221,13 +228,14 @@ function load() {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (s && Array.isArray(s.cards) && s.cards.length === CARDS.length) {
       answer.value = s.answer || "";
+      notes.value = s.notes || "";
       return s.cards;
     }
   } catch (e) {}
   return null;
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ cards: state, answer: answer.value })); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ cards: state, answer: answer.value, notes: notes.value })); } catch (e) {}
 }
 
 const els = CARDS.map((text, i) => {
@@ -330,11 +338,12 @@ revealBtn.addEventListener("click", () => {
 document.getElementById("reset").addEventListener("click", () => {
   if (!confirm("Pradėti iš naujo? Kortelės grįš į sąrašą.")) return;
   state = CARDS.map(() => ({ x: null, y: null, flag: false }));
-  revealed = false; answer.value = "";
+  revealed = false; answer.value = ""; notes.value = "";
   document.getElementById("summary").hidden = true;
   stopTimer(); render(); save();
 });
 answer.addEventListener("input", save);
+notes.addEventListener("input", save);
 
 // 5 min laikmatis
 let timerId = null;
