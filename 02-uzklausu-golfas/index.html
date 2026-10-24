@@ -102,6 +102,9 @@
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .table-wrap { overflow-x: auto; }
   tr.best td { font-weight: 700; }
+  td.cell-text { white-space: pre-wrap; min-width: 14em; }
+  td.answer, tr.best td.answer { font-weight: 400; font-size: 13px; min-width: 16em; max-width: 32em; }
+  .answer-box { white-space: pre-wrap; max-height: 9em; overflow-y: auto; }
   .tag-ok { color: var(--green); font-weight: 700; }
   .tag-bad { color: var(--bad); font-weight: 700; }
   .remember {
@@ -156,6 +159,7 @@
       <textarea id="prompt" placeholder="Kuo trumpiau…"></textarea>
       <div class="counter">
         <span>Smūgiai: <span class="strokes" id="strokeCount">0</span></span>
+        <span>Simboliai: <b id="charCount">0</b></span>
         <span class="hint" id="parDiff"></span>
       </div>
       <div class="warn-box" id="copyWarn" hidden></div>
@@ -361,6 +365,7 @@ function renderCounter() {
   const h = hole();
   const n = words($("prompt").value).length;
   $("strokeCount").textContent = n;
+  $("charCount").textContent = $("prompt").value.trim().length;
   const diff = n - h.par;
   $("parDiff").textContent = n ? (diff === 0 ? "lygiai par" : diff < 0 ? `${-diff} mažiau nei par` : `${diff} daugiau nei par`) : "";
   const copied = copiedPhrase(h.text, $("prompt").value, h.copy);
@@ -375,9 +380,10 @@ function renderAttempts() {
   const h = hole(), list = S.attempts[h.id] || [], b = best(h.id);
   $("noAttempts").hidden = list.length > 0;
   $("attempts").hidden = !list.length;
-  $("attempts").innerHTML = `<tr><th>#</th><th>Užklausa</th><th class="num">Smūgiai</th><th class="num">Panašumas</th><th>Būsena</th></tr>` +
-    list.map((a, i) => `<tr class="${a === b ? "best" : ""}"><td>${i + 1}</td><td>${esc(a.prompt)}</td>
-      <td class="num">${a.strokes}</td><td class="num">${a.sim} %</td>
+  $("attempts").innerHTML = `<tr><th>#</th><th>Užklausa</th><th>DI atsakymas</th><th class="num">Smūgiai</th><th class="num">Simboliai</th><th class="num">Panašumas</th><th>Būsena</th></tr>` +
+    list.map((a, i) => `<tr class="${a === b ? "best" : ""}"><td>${i + 1}</td><td class="cell-text">${esc(a.prompt)}</td>
+      <td class="answer"><div class="answer-box">${esc(a.result)}</div></td>
+      <td class="num">${a.strokes}</td><td class="num">${a.chars ?? a.prompt.length}</td><td class="num">${a.sim} %</td>
       <td>${a.penalty ? '<span class="tag-bad">Bauda</span>' : a.holed ? '<span class="tag-ok">Įmušta ⛳</span>' : "Neįmušta"}${a === b ? " · geriausias" : ""}</td></tr>`).join("");
 }
 
@@ -425,7 +431,7 @@ $("check").addEventListener("click", () => {
   const strokes = words(prompt).length;
   const penalty = !!copiedPhrase(h.text, prompt, h.copy);
   const sim = similarity(h.text, result);
-  const a = { prompt, result, strokes, sim, penalty, holed: !penalty && sim >= h.goal };
+  const a = { prompt, result, strokes, chars: prompt.length, sim, penalty, holed: !penalty && sim >= h.goal };
   (S.attempts[h.id] = S.attempts[h.id] || []).push(a);
   S.drafts[h.id] = { prompt, result: "" };
   renderAll(); showFeedback(a); save();
