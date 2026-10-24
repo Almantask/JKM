@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A/B eksperimentas</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --muted: #5f6670;
+    --line: #d9d4c9;
+    --accent: #2f6fdb;
+    --green: #1f9d6b;
+    --bad: #d6336c;
+    --warn: #c98a00;
+    --shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+      --line: #3a3f46; --shadow: 0 2px 6px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+    --line: #3a3f46; --shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  header .tag { color: var(--muted); font-size: 14px; letter-spacing: .02em; }
+  h1 { margin: 4px 0 6px; font-size: clamp(26px, 4vw, 36px); }
+  h2 { margin: 0 0 8px; font-size: 20px; }
+  h3 { margin: 0 0 6px; font-size: 16px; }
+  .lead { margin: 0 0 16px; color: var(--muted); max-width: 66ch; }
+  .hint { color: var(--muted); font-size: 14px; }
+  button {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); padding: 8px 14px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.small { padding: 4px 10px; font-size: 14px; }
+  button:disabled { opacity: .5; cursor: default; }
+  textarea {
+    font: inherit; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); width: 100%; min-height: 70px;
+  }
+  [hidden] { display: none !important; }
+
+  .rules { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+  .rules li { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 15px; }
+  .rules b { color: var(--accent); margin-right: 4px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .timer { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .timer.over { color: var(--bad); }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .base {
+    white-space: pre-wrap; font-size: 16px; padding: 10px 14px; border-radius: 12px;
+    border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+
+  .techs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .techs { grid-template-columns: 1fr; } }
+  .tech { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--bg); }
+  .tech .num { color: var(--accent); font-weight: 800; font-size: 14px; }
+  .tech h3 { margin: 2px 0 8px; }
+  .tech dl { margin: 0; font-size: 14px; }
+  .tech dt { font-weight: 700; margin-top: 8px; }
+  .tech dd { margin: 2px 0 0; }
+  .tech .example { font-style: italic; border-left: 3px solid var(--line); padding-left: 8px; }
+  .tech details { margin-top: 10px; font-size: 14px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .tech details summary { cursor: pointer; font-weight: 700; }
+  .tech details p { margin: 6px 0 0; }
+  .verdict-tag { display: inline-block; border-radius: 999px; padding: 1px 10px; font-size: 13px; font-weight: 700; color: #fff; }
+  .v-works { background: var(--green); }
+  .v-myth { background: var(--bad); }
+  .v-unclear { background: var(--warn); }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+  .tabs button { border-radius: 999px; }
+  .tabs button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tabs .done::after { content: " ✓"; }
+  .change { font-size: 15px; margin: 0 0 8px; }
+  .warn-box { border: 2px solid var(--bad); border-radius: 10px; padding: 8px 12px; font-size: 14px; margin: 6px 0; }
+  .saved { color: var(--green); font-weight: 700; font-size: 14px; }
+  label { display: block; margin-top: 8px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--bg); }
+  .card h3 { display: flex; justify-content: space-between; gap: 8px; }
+  .card .answer-box { white-space: pre-wrap; font-size: 14px; max-height: 16em; overflow-y: auto; margin-bottom: 8px; }
+  .stars { display: flex; gap: 4px; }
+  .stars button { padding: 2px 10px; font-size: 15px; }
+  .stars button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; }
+  tr.best td { font-weight: 700; }
+  .remember {
+    border-left: 4px solid var(--accent); padding: 12px 16px; background: var(--surface);
+    border-radius: 0 14px 14px 0; font-size: 17px; margin-bottom: 16px;
+  }
+  .remember small { display: block; color: var(--muted); font-size: 13px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="tag">2 tema · Individualiai · 20 min</div>
+    <h1>A/B eksperimentas</h1>
+    <p class="lead">Ta pati užduotis – skirtingos užklausos. Kiekvieną kartą <b>pakeisk tik vieną dalį</b>: tada žinai, kas lėmė skirtumą. Tai kontroliuojamas eksperimentas.</p>
+  </header>
+
+  <ul class="rules">
+    <li><b>1</b>Paleisk bazinę užklausą</li>
+    <li><b>2</b>Pridėk po vieną techniką, tada visas tris kartu</li>
+    <li><b>3</b>Kiekvieną užklausą – naujame DI pokalbyje</li>
+    <li><b>4</b>Įvertink atsakymus aklai, tada atskleisk</li>
+  </ul>
+
+  <div class="toolbar">
+    <button id="startTimer" type="button">▶ Pradėti 15 min</button>
+    <button id="reset" type="button">Iš naujo</button>
+    <span class="timer" id="timer">15:00</span>
+  </div>
+
+  <section class="panel">
+    <h2>Problema</h2>
+    <p>Mokykloje bus <b>knygų mainų diena</b>, bet į tokius renginius dažniausiai ateina tie patys keli skaitytojai. Reikia skelbimo mokyklos stendui, kuris pakviestų ir tuos, kurie knygų paprastai neskaito.</p>
+    <p class="hint">Bazinė užklausa – visiems vienoda. Jos nekeisk, tik pridėk technikas.</p>
+    <div class="base" id="baseText"></div>
+    <div class="row">
+      <button type="button" class="small" id="copyBase">Kopijuoti bazinę užklausą</button>
+      <span class="hint" id="copyMsg"></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Tavo 3 technikos</h2>
+    <p class="hint">Technikos parinktos atsitiktinai – klasės draugo gali būti kitos. Vienos iš jų tikrai veikia, kitos – mitai. Prieš atsiversdamas „Kodėl…“, pabandyk atspėti pats.</p>
+    <div class="techs" id="techs"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Užklausos ir atsakymai</h2>
+    <ul class="tabs" id="tabs"></ul>
+    <p class="change" id="change"></p>
+    <label for="prompt"><b>Užklausa</b></label>
+    <textarea id="prompt"></textarea>
+    <div class="row">
+      <button type="button" class="small" id="insertExample">+ Įdėti pavyzdį</button>
+      <span class="hint" id="wordCount"></span>
+    </div>
+    <div class="warn-box" id="baseWarn" hidden>Bazinė užklausa pakeista. Palik ją kaip yra ir tik pridėk techniką – kitaip nežinosi, kas lėmė skirtumą.</div>
+    <label for="result"><b>DI atsakymas</b> <span class="hint">(naujame pokalbyje)</span></label>
+    <textarea id="result" placeholder="Įklijuok, ką atsakė DI…"></textarea>
+    <div class="row">
+      <button type="button" class="primary" id="saveVariant" disabled>Išsaugoti</button>
+      <span class="saved" id="savedMsg"></span>
+      <span class="hint" id="progress"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="blind" hidden>
+    <h2>Aklas vertinimas</h2>
+    <p class="hint">Atsakymai sumaišyti – nežinai, kuris iš kurios užklausos. Įvertink kiekvieną: kiek jis tinka stendui ir ar pakviestų neskaitančius? 1 – visai ne, 5 – puikiai.</p>
+    <div class="cards" id="cards"></div>
+    <div class="row">
+      <button type="button" class="primary" id="revealBtn" disabled>Atskleisti</button>
+      <span class="hint" id="revealHint">Įvertink visus 5 atsakymus.</span>
+    </div>
+  </section>
+
+  <section class="panel" id="reveal" hidden>
+    <h2>Atskleidimas</h2>
+    <div class="table-wrap"><table id="revealTable"></table></div>
+    <p class="hint">Vienas bandymas – dar ne įrodymas: DI atsakymai skiriasi net paleidus tą pačią užklausą dukart. Jei dvi užklausos gavo panašius balus, skirtumo gali ir nebūti.</p>
+  </section>
+
+  <section class="panel" id="notes" hidden>
+    <h2>Ką pastebėjai?</h2>
+    <label for="q1"><b>1.</b> Kuri viena technika pakeitė rezultatą labiausiai? Kas konkrečiai pasikeitė?</label>
+    <textarea id="q1"></textarea>
+    <label for="q2"><b>2.</b> Ar „visos kartu“ buvo geriau už geriausią vieną techniką? Kodėl taip manai?</label>
+    <textarea id="q2"></textarea>
+    <label for="q3"><b>3.</b> Ar tavo rezultatai sutampa su tyrimais? Kas nustebino?</label>
+    <textarea id="q3"></textarea>
+    <p class="hint">Atsakymai išsaugomi automatiškai. Pasidalyk jais su klase.</p>
+  </section>
+
+  <div class="remember">
+    <small>Ko išmokome</small>
+    Keisk vieną dalį – tik taip žinai, kas lėmė skirtumą. Daugiausia duoda pavyzdys, kontekstas ir aiškus formatas, o „stebuklingos frazės“ – beveik nieko.
+  </div>
+</main>
+
+<script>
+const BASE = "Parašyk skelbimą mokyklos stendui: knygų mainų diena lapkričio 27 d., ketvirtadienį, 12:30–14:00 mokyklos bibliotekoje. Atsinešk vieną perskaitytą knygą ir išsinešk kitą.";
+
+// works: veikia (pagal tyrimus), myth: mitas, unclear: neaišku
+const TECHS = [
+  { id: "pavyzdys", name: "Duok pavyzdį ir pasakyk, ką iš jo perimti", verdict: "works", stars: "★★★",
+    how: "Įklijuok trumpą kito skelbimo pavyzdį ir pasakyk, ką iš jo perimti (toną, ilgį, struktūrą), o ko – ne.",
+    example: "Perimk šio skelbimo toną ir ilgį, ne turinį: „Šachmatų turnyras! Ketvirtadienį 15:00 aktų salėje. Atsinešk tik norą laimėti – lentas turim. Užsirašyk pas klasės vadovą.“",
+    watch: "Ar atsakymo tonas ir ilgis panašūs į pavyzdžio? Ar DI nenukopijavo pavyzdžio žodžių ar idėjų?",
+    why: "DI geriausiai supranta, ko nori, kai tai pamato. Pavyzdžiai – viena patikimiausių technikų, patikrinta daugelyje tyrimų.",
+    source: "Brown ir kt., 2020; Anthropic gairės" },
+  { id: "kontekstas", name: "Papasakok kontekstą ir kodėl to reikia", verdict: "works", stars: "★★",
+    how: "Pasakyk, kas skaitys, kur tai bus ir ko tu iš tikrųjų nori pasiekti.",
+    example: "Skelbimas kabės prie valgyklos. Jį skaitys 15–18 m. mokiniai, kurių dauguma knygų beveik neskaito. Noriu, kad ateitų būtent jie.",
+    watch: "Ar skelbimas kalba su neskaitančiais, ar tik su knygų mėgėjais? Ar atsirado kas nors, ko bazinėje versijoje nebuvo?",
+    why: "DI nemato nieko, ko neparašei. Ko nepasakei – jis spėja ir parašo vidutiniškai, „visiems“.",
+    source: "Anthropic gairės" },
+  { id: "formatas", name: "Nurodyk formatą", verdict: "works", stars: "★★",
+    how: "Pasakyk, kokio ilgio, kokios struktūros ir kokio tono turi būti tekstas.",
+    example: "Iki 60 žodžių: antraštė ir 3 trumpi sakiniai, draugiškas tonas.",
+    watch: "Suskaičiuok žodžius – ar DI laikėsi ribos? Ar trumpesnis tekstas neprarado svarbios informacijos (datos, vietos)?",
+    why: "Tyrimuose be formato nurodymo atsakymų tikslumas reikšmingai krito. Formatas – lengviausias būdas gauti tai, ko reikia.",
+    source: "Meincke ir kt., 2025" },
+  { id: "kriterijai", name: "Kritika pagal kriterijus, tada pataisymas", verdict: "works", stars: "★★",
+    how: "Paprašyk DI parašyti, įvertinti savo tekstą pagal tavo kriterijus ir pataisyti.",
+    example: "Parašyk, tada sukritikuok pagal 3 kriterijus: ar aišku kada ir kur, ar perskaitoma per 10 sekundžių, ar norisi ateiti. Pateik tik pataisytą variantą.",
+    watch: "Ar galutinis tekstas tikrai atitinka visus 3 kriterijus? Patikrink pats – DI kartais sako, kad pataisė, nors nepataisė.",
+    why: "Rašymo užduotyse kritika pagal kriterijus pagerino rezultatą apie 20 %. Bet be aiškių kriterijų „sukritikuok save“ dažnai nieko neduoda.",
+    source: "Madaan ir kt., 2023" },
+  { id: "daryk", name: "Sakyk, ką daryti, ne ko nedaryti", verdict: "works", stars: "★★",
+    how: "Vietoj draudimų („nerašyk ilgai“, „be nuobodžių frazių“) parašyk, ką DI turi daryti.",
+    example: "Rašyk trumpais sakiniais, kreipkis į skaitytoją „tu“ ir pradėk nuo to, ką jis gaus.",
+    watch: "Ar DI padarė tai, ko prašei? Palygink su bazine versija: ar sakiniai trumpesni, ar tekstas kreipiasi į tave?",
+    why: "DI kūrėjų patarimas, patikrintas jų testais: draudimas pasako, ko nenori, bet ne ką nori. Aiškus nurodymas – lengviau įvykdomas.",
+    source: "Anthropic gairės" },
+  { id: "tankink", name: "Tankink, ne trumpink", verdict: "works", stars: "★★",
+    how: "Paprašyk, kad kiekvienas sakinys pasakytų ką nors naujo ir konkretaus.",
+    example: "Kiekvienas sakinys turi pasakyti ką nors naujo ir konkretaus – be bendrų frazių apie knygų naudą.",
+    watch: "Rask atsakyme „vandenį“ – sakinius, kurie nieko nepasako. Ar jų sumažėjo palyginti su bazine versija?",
+    why: "Žmonės tankesnius tekstus – tokio pat ilgio, bet su daugiau svarbių faktų – vertino geriau.",
+    source: "Adams ir kt., 2023" },
+  { id: "pinigai", name: "Pažadėk atlygį", verdict: "myth",
+    how: "Pridėk sakinį, kuriuo pažadi DI pinigų už gerą atsakymą.",
+    example: "Jei parašysi gerai, gausi 1000 $ arbatpinigių.",
+    watch: "Ar tekstas iš tikrųjų pagerėjo, ar tik šiek tiek kitoks? Nuo atsitiktinumo DI atsakymai keičiasi ir be jokios technikos.",
+    why: "5 modeliai, sunkūs klausimai, kiekvienas po 25 kartus: vidutiniškai jokio poveikio, kartais net blogiau. DI neturi kam išleisti pinigų.",
+    source: "Wharton, 2025" },
+  { id: "ekspertas", name: "Paskirk DI eksperto vaidmenį", verdict: "myth",
+    how: "Užklausos pradžioje pasakyk DI, kad jis – ekspertas.",
+    example: "Tu – pasaulinio lygio rinkodaros ekspertas.",
+    watch: "Ar pasikeitė turinys, ar tik tonas (daugiau „reklaminių“ žodžių)? Ar atsirado kas nors naujo ir naudingo?",
+    why: "Su 6 modeliais eksperto vaidmuo teisingumo beveik nepagerino. Vaidmuo keičia toną, ne žinias – DI nuo to nesužino daugiau.",
+    source: "Wharton, 2025" },
+  { id: "zingsnis", name: "Liepk galvoti žingsnis po žingsnio", verdict: "myth",
+    how: "Pridėk frazę, kuri liepia DI galvoti žingsniais.",
+    example: "Galvok žingsnis po žingsnio.",
+    watch: "Ar skelbimas geresnis, ar tik atsakymas ilgesnis (su paaiškinimais, kurių stendui nereikia)?",
+    why: "Naujiems modeliams, kurie patys „galvoja“, nauda beveik nulinė, o laukti tenka ilgiau. Paprastesniems kartais padeda, kartais sugadina.",
+    source: "Wharton, 2025" },
+  { id: "raides", name: "Rašyk DIDŽIOSIOMIS ir su šauktukais", verdict: "myth",
+    how: "Pridėk šaukiantį reikalavimą didžiosiomis raidėmis.",
+    example: "BŪTINAI!!! SKELBIMAS TURI BŪTI LABAI GERAS!!!",
+    watch: "Ar tekstas nepasidarė perdėtas – per daug šauktukų, emocijų, „super“ žodžių?",
+    why: "DI kūrėjai pataria to vengti: nauji modeliai klauso gerai, todėl šauksmas priverčia juos persistengti. Geriau paaiškink, kodėl tai svarbu.",
+    source: "Anthropic gairės" },
+  { id: "prasau", name: "Būk labai mandagus", verdict: "myth",
+    how: "Pridėk labai mandagų prašymą.",
+    example: "Labai labai prašau, būk toks malonus ir pasistenk, nuoširdžiai ačiū!",
+    watch: "Ar kas nors pasikeitė, išskyrus tai, kad užklausa ilgesnė?",
+    why: "„Prašau“ ir „įsakau“ vidutiniškai veikia vienodai. Grubumas kartais kenkia, bet perdėtas mandagumas nepadeda. Būk normalus.",
+    source: "Wharton, 2025; Yin ir kt., 2024" },
+  { id: "karjera", name: "Pasakyk, kad tai labai svarbu", verdict: "unclear",
+    how: "Pridėk sakinį apie tai, kaip tau svarbus rezultatas.",
+    example: "Tai labai svarbu mano karjerai.",
+    watch: "Ar tekstas tikrai geresnis? Atkreipk dėmesį: frazė nesako DI nieko apie tai, KOKIO teksto reikia.",
+    why: "2023 m. senesniems modeliams tai padėjo, bet 2025 m. naujiems modeliams reikšmingo poveikio nebuvo. Neaišku – nelaikyk taisykle.",
+    source: "Li ir kt., 2023; Wharton, 2025" }
+];
+const VERDICT = { works: ["Veikia", "v-works"], myth: ["Mitas", "v-myth"], unclear: ["Neaišku", "v-unclear"] };
+const KEY = "jkm-02-ab-eksperimentas";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const words = s => (String(s).match(/[\p{L}\p{N}]+/gu) || []).length;
+const squash = s => String(s).replace(/\s+/g, " ").trim();
+const tech = id => TECHS.find(t => t.id === id);
+
+function shuffle(a) {
+  a = [...a];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// 3 atsitiktinės technikos: bent viena veikianti ir bent viena neveikianti
+function drawTechs() {
+  for (;;) {
+    const pick = shuffle(TECHS).slice(0, 3);
+    if (pick.some(t => t.verdict === "works") && pick.some(t => t.verdict !== "works")) return pick.map(t => t.id);
+  }
+}
+
+// ---------- Būsena ----------
+function fresh() {
+  return { techs: drawTechs(), current: "base", variants: {}, saved: {}, order: null, ratings: {}, revealed: false, notes: {} };
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.techs) && s.techs.every(tech) && s.variants) return s;
+  } catch (e) {}
+  return null;
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+let S = load() || fresh();
+
+// Variantai: bazinė, po vieną techniką, visos kartu
+function variants() {
+  return [
+    { id: "base", tab: "Bazinė", label: "Bazinė užklausa", techs: [] },
+    ...S.techs.map((t, i) => ({ id: t, tab: `${i + 1} technika`, label: `${i + 1} technika: ${tech(t).name}`, techs: [t] })),
+    { id: "all", tab: "Visos kartu", label: "Visos 3 technikos kartu", techs: [...S.techs] }
+  ];
+}
+const variant = () => variants().find(v => v.id === S.current) || variants()[0];
+const allSaved = () => variants().every(v => S.saved[v.id]);
+
+// ---------- Atvaizdavimas ----------
+function renderTechs() {
+  $("techs").innerHTML = S.techs.map((id, i) => {
+    const t = tech(id), [vName, vClass] = VERDICT[t.verdict];
+    return `<article class="tech">
+      <div class="num">${i + 1} technika</div>
+      <h3>${esc(t.name)}</h3>
+      <dl>
+        <dt>Kaip naudoti</dt><dd>${esc(t.how)}</dd>
+        <dt>Pavyzdys</dt><dd class="example">${esc(t.example)}</dd>
+        <dt>Į ką atkreipti dėmesį</dt><dd>${esc(t.watch)}</dd>
+      </dl>
+      <details>
+        <summary>Kodėl veikia ar ne? <span class="hint">(pirma atspėk)</span></summary>
+        <p><span class="verdict-tag ${vClass}">${vName}${t.stars ? " " + t.stars : ""}</span></p>
+        <p>${esc(t.why)}</p>
+        <p class="hint">Šaltinis: ${esc(t.source)}</p>
+      </details>
+    </article>`;
+  }).join("");
+}
+
+function renderTabs() {
+  $("tabs").innerHTML = variants().map(v => `<li><button type="button" data-v="${v.id}" class="${S.saved[v.id] ? "done" : ""}"
+    ${v.id === variant().id ? 'aria-current="step"' : ""}>${esc(v.tab)}</button></li>`).join("");
+  $("tabs").querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => {
+    S.current = b.dataset.v; renderEditor(); renderTabs(); save();
+  }));
+}
+
+function renderEditor() {
+  const v = variant();
+  $("change").innerHTML = v.techs.length
+    ? `<b>${esc(v.label)}.</b> Pridėk prie bazinės užklausos ${v.techs.length > 1 ? "visas tris technikas" : "tik šią techniką"} – daugiau nieko nekeisk.`
+    : "<b>Bazinė užklausa.</b> Paleisk ją be jokių pakeitimų – su ja lyginsi visus kitus variantus.";
+  const d = S.variants[v.id] || {};
+  $("prompt").value = d.prompt ?? BASE;
+  $("result").value = d.result || "";
+  $("insertExample").hidden = !v.techs.length;
+  renderEditorState();
+}
+
+function renderEditorState() {
+  const v = variant(), p = $("prompt").value, r = $("result").value;
+  $("wordCount").textContent = `Žodžių užklausoje: ${words(p)}`;
+  $("baseWarn").hidden = squash(p).includes(squash(BASE));
+  const ready = squash(p) && squash(r);
+  $("saveVariant").disabled = !ready;
+  const s = S.saved[v.id];
+  $("savedMsg").textContent = s ? (s.prompt === p.trim() && s.result === r.trim() ? "✓ Išsaugota" : "Yra neišsaugotų pakeitimų") : "";
+  const n = variants().filter(x => S.saved[x.id]).length;
+  $("progress").textContent = `Išsaugota ${n} iš 5`;
+}
+
+// Aklas vertinimas: atsakymai sumaišyti ir sunumeruoti
+function renderBlind() {
+  $("blind").hidden = !allSaved();
+  if (!allSaved()) return;
+  if (!S.order || S.order.length !== 5) { S.order = shuffle(variants().map(v => v.id)); save(); }
+  $("cards").innerHTML = S.order.map((id, i) => `<div class="card">
+      <h3><span>Atsakymas ${i + 1}</span><span class="hint">${words(S.saved[id].result)} žodž.</span></h3>
+      <div class="answer-box">${esc(S.saved[id].result)}</div>
+      <div class="stars" role="group" aria-label="Atsakymo ${i + 1} balas">
+        ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-id="${id}" data-n="${n}" aria-pressed="${S.ratings[id] === n}">${n}</button>`).join("")}
+      </div>
+    </div>`).join("");
+  $("cards").querySelectorAll("[data-n]").forEach(b => b.addEventListener("click", () => {
+    S.ratings[b.dataset.id] = +b.dataset.n; renderBlind(); save();
+  }));
+  const rated = S.order.every(id => S.ratings[id]);
+  $("revealBtn").disabled = !rated || S.revealed;
+  $("revealHint").textContent = S.revealed ? "Atskleista – žr. žemiau." : rated ? "" : "Įvertink visus 5 atsakymus.";
+}
+
+function renderReveal() {
+  $("reveal").hidden = $("notes").hidden = !S.revealed;
+  if (!S.revealed) return;
+  const top = Math.max(...S.order.map(id => S.ratings[id] || 0));
+  const byId = Object.fromEntries(variants().map(v => [v.id, v]));
+  $("revealTable").innerHTML = `<tr><th>Atsakymas</th><th>Užklausa</th><th class="num">Tavo balas</th><th class="num">Žodžiai</th><th>Pagal tyrimus</th></tr>` +
+    S.order.map((id, i) => {
+      const v = byId[id];
+      const verdicts = v.techs.length ? v.techs.map(t => { const [n, c] = VERDICT[tech(t).verdict]; return `<span class="verdict-tag ${c}">${n}</span>`; }).join(" ") : "<span class=\"hint\">kontrolė</span>";
+      return `<tr class="${S.ratings[id] === top ? "best" : ""}"><td>${i + 1}</td><td>${esc(v.label)}</td>
+        <td class="num">${S.ratings[id] ?? "–"}</td><td class="num">${words(S.saved[id].result)}</td><td>${verdicts}</td></tr>`;
+    }).join("");
+  ["q1", "q2", "q3"].forEach(q => { $(q).value = S.notes[q] || ""; });
+}
+
+function renderAll() { renderTechs(); renderTabs(); renderEditor(); renderBlind(); renderReveal(); }
+
+// ---------- Veiksmai ----------
+["prompt", "result"].forEach(id => $(id).addEventListener("input", () => {
+  S.variants[variant().id] = { prompt: $("prompt").value, result: $("result").value };
+  renderEditorState(); save();
+}));
+
+$("insertExample").addEventListener("click", () => {
+  const v = variant();
+  const add = v.techs.map(t => tech(t).example).filter(ex => !$("prompt").value.includes(ex));
+  if (!add.length) return;
+  $("prompt").value = $("prompt").value.trimEnd() + "\n" + add.join("\n");
+  $("prompt").dispatchEvent(new Event("input"));
+});
+
+$("saveVariant").addEventListener("click", () => {
+  const v = variant();
+  const changed = S.saved[v.id] && S.saved[v.id].result !== $("result").value.trim();
+  S.saved[v.id] = { prompt: $("prompt").value.trim(), result: $("result").value.trim() };
+  if (changed) delete S.ratings[v.id];
+  // Pereiti prie kito neišsaugoto varianto
+  const next = variants().find(x => !S.saved[x.id]);
+  if (next) S.current = next.id;
+  renderTabs(); renderEditor(); renderBlind(); save();
+  if (allSaved() && !next) $("blind").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+$("revealBtn").addEventListener("click", () => {
+  S.revealed = true;
+  renderBlind(); renderReveal(); save();
+  $("reveal").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+["q1", "q2", "q3"].forEach(q => $(q).addEventListener("input", () => { S.notes[q] = $(q).value; save(); }));
+
+$("copyBase").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(BASE); $("copyMsg").textContent = "Nukopijuota!"; }
+  catch (e) { $("copyMsg").textContent = "Pažymėk tekstą ir spausk Ctrl+C"; }
+  setTimeout(() => { $("copyMsg").textContent = ""; }, 2500);
+});
+
+$("reset").addEventListener("click", () => {
+  if (!confirm("Pradėti iš naujo? Visi atsakymai bus ištrinti, o technikos parinktos iš naujo.")) return;
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  S = fresh(); stopTimer(); renderAll(); save();
+});
+
+// 15 min laikmatis
+let timerId = null;
+const timerEl = $("timer");
+const startBtn = $("startTimer");
+function stopTimer() {
+  clearInterval(timerId); timerId = null;
+  timerEl.textContent = "15:00"; timerEl.classList.remove("over");
+  startBtn.textContent = "▶ Pradėti 15 min";
+}
+startBtn.addEventListener("click", () => {
+  if (timerId) return stopTimer();
+  const end = Date.now() + 15 * 60 * 1000;
+  startBtn.textContent = "■ Sustabdyti";
+  const tick = () => {
+    const left = Math.round((end - Date.now()) / 1000);
+    const a = Math.abs(left);
+    timerEl.textContent = (left < 0 ? "−" : "") + Math.floor(a / 60) + ":" + String(a % 60).padStart(2, "0");
+    timerEl.classList.toggle("over", left < 0);
+  };
+  tick(); timerId = setInterval(tick, 500);
+});
+
+$("baseText").textContent = BASE;
+renderAll();
+save();
+</script>
+</body>
+</html>
