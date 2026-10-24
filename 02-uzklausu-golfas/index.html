@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Užklausų golfas</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --muted: #5f6670;
+    --line: #d9d4c9;
+    --accent: #2f6fdb;
+    --green: #1f9d6b;
+    --bad: #d6336c;
+    --warn: #c98a00;
+    --hit: rgba(31, 157, 107, .22);
+    --miss: rgba(214, 51, 108, .18);
+    --shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+      --line: #3a3f46; --shadow: 0 2px 6px rgba(0,0,0,.5);
+      --hit: rgba(52, 211, 153, .25); --miss: rgba(244, 114, 182, .25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+    --line: #3a3f46; --shadow: 0 2px 6px rgba(0,0,0,.5);
+    --hit: rgba(52, 211, 153, .25); --miss: rgba(244, 114, 182, .25);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  header .tag { color: var(--muted); font-size: 14px; letter-spacing: .02em; }
+  h1 { margin: 4px 0 6px; font-size: clamp(26px, 4vw, 36px); }
+  h2 { margin: 0 0 8px; font-size: 20px; }
+  h3 { margin: 0 0 6px; font-size: 16px; }
+  .lead { margin: 0 0 16px; color: var(--muted); max-width: 66ch; }
+  .hint { color: var(--muted); font-size: 14px; }
+  button {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); padding: 8px 14px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.small { padding: 4px 10px; font-size: 14px; }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type="text"], input[type="number"], textarea {
+    font: inherit; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  textarea { width: 100%; min-height: 70px; }
+  [hidden] { display: none !important; }
+
+  .rules { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+  .rules li { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 15px; }
+  .rules b { color: var(--accent); margin-right: 4px; }
+
+  .holes { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+  .holes button { border-radius: 999px; }
+  .holes button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .holes .done::after { content: " ⛳"; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .timer { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .timer.over { color: var(--bad); }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .target {
+    white-space: pre-wrap; font-size: 17px; line-height: 1.55; padding: 12px 14px; border-radius: 12px;
+    border: 2px solid var(--green); background: color-mix(in srgb, var(--green) 6%, var(--surface));
+  }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0; font-size: 14px; }
+  .meta b { font-variant-numeric: tabular-nums; }
+  .counter { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 6px 0; font-size: 14px; }
+  .strokes { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .warn-box { border: 2px solid var(--bad); border-radius: 10px; padding: 8px 12px; font-size: 14px; margin: 6px 0; }
+
+  .verdict { font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+  .verdict.ok { color: var(--green); }
+  .verdict.bad { color: var(--bad); }
+  .meter { height: 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; margin: 6px 0; position: relative; }
+  .meter i { display: block; height: 100%; background: var(--green); }
+  .meter .goal { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
+  .compare { font-size: 15px; line-height: 1.7; }
+  .compare .w-hit { background: var(--hit); border-radius: 4px; }
+  .compare .w-miss { background: var(--miss); border-radius: 4px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; margin: 4px 0 10px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; }
+  tr.best td { font-weight: 700; }
+  .tag-ok { color: var(--green); font-weight: 700; }
+  .tag-bad { color: var(--bad); font-weight: 700; }
+  .remember {
+    border-left: 4px solid var(--accent); padding: 12px 16px; background: var(--surface);
+    border-radius: 0 14px 14px 0; font-size: 17px; margin-bottom: 16px;
+  }
+  .remember small { display: block; color: var(--muted); font-size: 13px; margin-bottom: 2px; }
+  details summary { cursor: pointer; font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .row input[type="text"] { flex: 1 1 220px; }
+  .row input[type="number"] { width: 6em; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="tag">2 tema · Individualiai · 15 min</div>
+    <h1>Užklausų golfas</h1>
+    <p class="lead">Atkurk mokytojo tekstą <b>kuo trumpesne užklausa</b>. Kiekvienas užklausos žodis – vienas smūgis. Laimi trumpiausia užklausa, kurios rezultatas panašiausias į originalą.</p>
+  </header>
+
+  <ul class="rules">
+    <li><b>1</b>Parašyk užklausą ir paleisk ją naujame DI pokalbyje</li>
+    <li><b>2</b>Įklijuok DI atsakymą – pamatysi panašumą</li>
+    <li><b>3</b>Įmušta, kai panašumas pasiekia tikslą</li>
+    <li><b>⚠</b>Kopijuoti originalo negalima – bauda</li>
+  </ul>
+
+  <ul class="holes" id="holeTabs"></ul>
+
+  <div class="toolbar">
+    <button id="startTimer" type="button">▶ Pradėti 5 min</button>
+    <button id="reset" type="button">Iš naujo</button>
+    <span class="timer" id="timer">5:00</span>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2 id="holeTitle">1 duobutė</h2>
+      <div class="meta">
+        <span>Par: <b id="holePar"></b> žodž.</span>
+        <span>Įmušta nuo: <b id="holeGoal"></b> % panašumo</span>
+        <span id="holeCopy"></span>
+      </div>
+      <p class="hint" id="holeHint"></p>
+      <div class="target" id="holeText"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Tavo smūgis</h2>
+      <label for="prompt"><b>Užklausa</b></label>
+      <textarea id="prompt" placeholder="Kuo trumpiau…"></textarea>
+      <div class="counter">
+        <span>Smūgiai: <span class="strokes" id="strokeCount">0</span></span>
+        <span class="hint" id="parDiff"></span>
+      </div>
+      <div class="warn-box" id="copyWarn" hidden></div>
+      <label for="result"><b>DI atsakymas</b></label>
+      <textarea id="result" placeholder="Įklijuok, ką atsakė DI…"></textarea>
+      <div class="row">
+        <button type="button" class="primary" id="check" disabled>Tikrinti</button>
+        <span class="hint" id="checkHint">Parašyk užklausą ir įklijuok DI atsakymą.</span>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" id="feedback" hidden>
+    <p class="verdict" id="verdict"></p>
+    <div class="meter" aria-hidden="true"><i id="meterFill"></i><span class="goal" id="meterGoal"></span></div>
+    <p class="hint" id="simLine"></p>
+    <div class="legend">
+      <span><i style="background: var(--hit)"></i>Sutampa su originalu</span>
+      <span><i style="background: var(--miss)"></i>Originale yra, atsakyme – ne</span>
+    </div>
+    <div class="grid2">
+      <div><h3>Originalas</h3><div class="compare" id="cmpOriginal"></div></div>
+      <div><h3>DI atsakymas</h3><div class="compare" id="cmpResult"></div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Bandymai šioje duobutėje</h2>
+    <div class="table-wrap"><table id="attempts"></table></div>
+    <p class="hint" id="noAttempts">Dar nebandei. Pirmas smūgis gali būti ilgas – paskui trumpink!</p>
+  </section>
+
+  <section class="panel">
+    <h2>Rezultatų kortelė</h2>
+    <div class="table-wrap"><table id="scorecard"></table></div>
+    <p class="hint">Pasakyk mokytojui savo geriausią smūgių skaičių ir panašumą. Lygiųjų atveju laimi panašesnis rezultatas.</p>
+  </section>
+
+  <div class="remember">
+    <small>Ko išmokome</small>
+    Žinomą ar „vidutinį“ tekstą DI atkuria iš kelių žodžių. Konkretų tekstą – tik tada, kai pateiki jo faktus. Ko nepasakei – DI spėja.
+  </div>
+
+  <section class="panel">
+    <details>
+      <summary>Mokytojui: savo tekstas</summary>
+      <p class="hint">Įklijuokite savo tekstą – atsiras papildoma duobutė. Mokiniams nusiųskite nuorodą, kad jie gautų tą patį tekstą.</p>
+      <label for="customText"><b>Tekstas</b></label>
+      <textarea id="customText" placeholder="Jūsų tekstas…"></textarea>
+      <div class="row">
+        <label for="customPar">Par</label><input type="number" id="customPar" min="1" max="60" value="10">
+        <label for="customGoal">Įmušta nuo, %</label><input type="number" id="customGoal" min="10" max="100" step="5" value="60">
+        <button type="button" class="small primary" id="saveCustom">Išsaugoti duobutę</button>
+        <button type="button" class="small" id="removeCustom">Pašalinti</button>
+      </div>
+      <div class="row">
+        <input type="text" id="shareLink" readonly aria-label="Nuoroda mokiniams" placeholder="Nuoroda atsiras išsaugojus">
+        <button type="button" class="small" id="copyLink">Kopijuoti nuorodą</button>
+        <span class="hint" id="linkMsg"></span>
+      </div>
+    </details>
+  </section>
+</main>
+
+<script>
+const BUILT_IN = [
+  { id: "h1", title: "1 duobutė · Žinomas tekstas", par: 3, goal: 80, copy: 4,
+    hint: "Šį tekstą žino beveik visi – ir DI.",
+    text: "Lietuva, Tėvyne mūsų,\nTu didvyrių žeme,\nIš praeities Tavo sūnūs\nTe stiprybę semia." },
+  { id: "h2", title: "2 duobutė · Vadovėlio apibrėžimas", par: 5, goal: 60, copy: 5,
+    hint: "Tokį sakinį rasi daugelyje vadovėlių – DI jį „mato“ kaip vidutinį tekstą.",
+    text: "Fotosintezė – procesas, kurio metu žalieji augalai, naudodami saulės šviesos energiją, iš anglies dioksido ir vandens gamina gliukozę ir išskiria deguonį." },
+  { id: "h3", title: "3 duobutė · Konkretus kvietimas", par: 20, goal: 50, copy: 0,
+    hint: "Šių faktų DI nežino – juos teks pasakyti pačiam. Faktus rašyti galima, bet kiekvienas žodis – smūgis. Kurie būtini?",
+    text: "Talentų vakaras „Ką moki tu?“ – lapkričio 20 d., penktadienį, 17:00, JKM 214 kabinete. Pasirodyk vienas, poroje ar trise ir parodyk bet ką, ką moki ar mėgsti! Registruokis pas mokytoją iki lapkričio 13 d." }
+];
+const KEY = "jkm-02-uzklausu-golfas";
+
+// ---------- Teksto palyginimas ----------
+const WORD_RE = /[\p{L}\p{N}]+/gu;
+const words = s => (String(s).match(WORD_RE) || []);
+const norm = w => w.toLowerCase();
+// Lietuviškos galūnės keičiasi, todėl lyginame žodžių pradžią (iki 5 raidžių)
+const stem = w => { const n = norm(w); return /^\d+$/.test(n) ? n : n.slice(0, 5); };
+
+function similarity(original, result) {
+  const a = words(original).map(stem), b = words(result).map(stem);
+  if (!a.length || !b.length) return 0;
+  const count = new Map();
+  for (const s of b) count.set(s, (count.get(s) || 0) + 1);
+  let common = 0;
+  for (const s of a) { const c = count.get(s) || 0; if (c) { common++; count.set(s, c - 1); } }
+  return Math.round(200 * common / (a.length + b.length));
+}
+
+// Žymi žodžius tekste: sutampantys – žalia, trūkstantys (tik originale) – rožinė
+function highlight(text, otherText, missClass) {
+  const pool = new Map();
+  for (const s of words(otherText).map(stem)) pool.set(s, (pool.get(s) || 0) + 1);
+  return esc(text).replace(/[\p{L}\p{N}]+/gu, w => {
+    const s = stem(w), c = pool.get(s) || 0;
+    if (c) { pool.set(s, c - 1); return `<span class="w-hit">${w}</span>`; }
+    return missClass ? `<span class="${missClass}">${w}</span>` : w;
+  });
+}
+
+// Bauda: n ir daugiau originalo žodžių iš eilės užklausoje; n = 0 – baudos nėra (faktų duobutė)
+function copiedPhrase(original, prompt, n) {
+  if (!n) return null;
+  const o = words(original).map(norm), p = words(prompt);
+  const grams = new Set();
+  for (let i = 0; i + n <= o.length; i++) grams.add(o.slice(i, i + n).join(" "));
+  for (let i = 0; i + n <= p.length; i++) {
+    if (grams.has(p.slice(i, i + n).map(norm).join(" "))) return p.slice(i, i + n).join(" ");
+  }
+  return null;
+}
+
+// ---------- Būsena ----------
+function decodeCustom() {
+  const m = location.hash.match(/^#t=(.+)$/);
+  if (!m) return null;
+  try {
+    const bin = atob(m[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const json = new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+    const c = JSON.parse(json);
+    if (c && typeof c.text === "string" && c.text.trim()) return c;
+  } catch (e) {}
+  return null;
+}
+function encodeCustom(c) {
+  const bytes = new TextEncoder().encode(JSON.stringify(c));
+  let bin = ""; bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+const fresh = () => ({ hole: "h1", custom: null, drafts: {}, attempts: {} });
+let S = load() || fresh();
+const fromLink = decodeCustom();
+if (fromLink) {
+  const changed = !S.custom || S.custom.text !== fromLink.text;
+  S.custom = { text: fromLink.text, par: +fromLink.par || 10, goal: +fromLink.goal || 60 };
+  if (changed) { delete S.attempts.custom; delete S.drafts.custom; S.hole = "custom"; }
+}
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && s.attempts && s.drafts) return s;
+  } catch (e) {}
+  return null;
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function holes() {
+  const list = [...BUILT_IN];
+  if (S.custom) list.push({ id: "custom", title: `${list.length + 1} duobutė · Mokytojo tekstas`, par: S.custom.par,
+    goal: S.custom.goal, copy: 6, hint: "Tekstą parinko mokytojas.", text: S.custom.text });
+  return list;
+}
+const hole = () => holes().find(h => h.id === S.hole) || holes()[0];
+
+// Geriausias bandymas: įmuštas su mažiausiai smūgių, lygiųjų atveju – panašesnis
+function best(id) {
+  const list = (S.attempts[id] || []).filter(a => !a.penalty);
+  const holed = list.filter(a => a.holed).sort((x, y) => x.strokes - y.strokes || y.sim - x.sim);
+  if (holed.length) return holed[0];
+  return list.sort((x, y) => y.sim - x.sim || x.strokes - y.strokes)[0] || null;
+}
+
+// ---------- Atvaizdavimas ----------
+function renderTabs() {
+  $("holeTabs").innerHTML = holes().map(h => {
+    const b = best(h.id);
+    return `<li><button type="button" data-hole="${h.id}" class="${b && b.holed ? "done" : ""}"
+      ${h.id === hole().id ? 'aria-current="step"' : ""}>${esc(h.title.split(" · ")[0])}</button></li>`;
+  }).join("");
+  $("holeTabs").querySelectorAll("[data-hole]").forEach(b => b.addEventListener("click", () => {
+    S.hole = b.dataset.hole; $("feedback").hidden = true; stopTimer(); renderAll(); save();
+  }));
+}
+
+function renderHole() {
+  const h = hole();
+  $("holeTitle").textContent = h.title;
+  $("holePar").textContent = h.par;
+  $("holeGoal").textContent = h.goal;
+  $("holeHint").textContent = h.hint;
+  $("holeCopy").textContent = h.copy ? `Bauda: ${h.copy} originalo žodžiai iš eilės` : "Baudos nėra";
+  $("holeText").textContent = h.text;
+  const d = S.drafts[h.id] || {};
+  $("prompt").value = d.prompt || "";
+  $("result").value = d.result || "";
+  renderCounter();
+}
+
+function renderCounter() {
+  const h = hole();
+  const n = words($("prompt").value).length;
+  $("strokeCount").textContent = n;
+  const diff = n - h.par;
+  $("parDiff").textContent = n ? (diff === 0 ? "lygiai par" : diff < 0 ? `${-diff} mažiau nei par` : `${diff} daugiau nei par`) : "";
+  const copied = copiedPhrase(h.text, $("prompt").value, h.copy);
+  $("copyWarn").hidden = !copied;
+  if (copied) $("copyWarn").textContent = `Bauda: nukopijavai originalo dalį „${copied}“. Perrašyk savais žodžiais.`;
+  const ready = n > 0 && $("result").value.trim();
+  $("check").disabled = !ready;
+  $("checkHint").hidden = !!ready;
+}
+
+function renderAttempts() {
+  const h = hole(), list = S.attempts[h.id] || [], b = best(h.id);
+  $("noAttempts").hidden = list.length > 0;
+  $("attempts").hidden = !list.length;
+  $("attempts").innerHTML = `<tr><th>#</th><th>Užklausa</th><th class="num">Smūgiai</th><th class="num">Panašumas</th><th>Būsena</th></tr>` +
+    list.map((a, i) => `<tr class="${a === b ? "best" : ""}"><td>${i + 1}</td><td>${esc(a.prompt)}</td>
+      <td class="num">${a.strokes}</td><td class="num">${a.sim} %</td>
+      <td>${a.penalty ? '<span class="tag-bad">Bauda</span>' : a.holed ? '<span class="tag-ok">Įmušta ⛳</span>' : "Neįmušta"}${a === b ? " · geriausias" : ""}</td></tr>`).join("");
+}
+
+function renderScorecard() {
+  let total = 0, totalPar = 0, allHoled = true;
+  const rows = holes().map(h => {
+    const b = best(h.id);
+    if (b && b.holed) { total += b.strokes; totalPar += h.par; } else allHoled = false;
+    const vsPar = b && b.holed ? b.strokes - h.par : null;
+    return `<tr><td>${esc(h.title)}</td><td class="num">${h.par}</td>
+      <td class="num">${b ? b.strokes : "–"}</td><td class="num">${b ? b.sim + " %" : "–"}</td>
+      <td>${b ? (b.holed ? `<span class="tag-ok">${vsPar === 0 ? "par" : (vsPar > 0 ? "+" : "−") + Math.abs(vsPar)}</span>` : "neįmušta") : "–"}</td></tr>`;
+  }).join("");
+  $("scorecard").innerHTML = `<tr><th>Duobutė</th><th class="num">Par</th><th class="num">Smūgiai</th><th class="num">Panašumas</th><th>Rezultatas</th></tr>` + rows +
+    `<tr class="best"><td>Iš viso (įmuštos)</td><td class="num">${totalPar}</td><td class="num">${total}</td><td></td>
+      <td>${allHoled ? `<span class="tag-ok">${total - totalPar === 0 ? "par" : (total - totalPar > 0 ? "+" : "−") + Math.abs(total - totalPar)}</span>` : "dar ne visos įmuštos"}</td></tr>`;
+}
+
+function showFeedback(a) {
+  const h = hole();
+  $("feedback").hidden = false;
+  const v = $("verdict");
+  if (a.penalty) { v.textContent = "Bauda – užklausoje nukopijuota originalo dalis."; v.className = "verdict bad"; }
+  else if (a.holed) { v.textContent = `Įmušta per ${a.strokes} smūg.! ⛳ Ar gali trumpiau?`; v.className = "verdict ok"; }
+  else { v.textContent = "Dar neįmušta. Ko trūksta atsakyme?"; v.className = "verdict bad"; }
+  $("meterFill").style.width = a.sim + "%";
+  $("meterGoal").style.left = h.goal + "%";
+  $("simLine").textContent = `Panašumas: ${a.sim} % (reikia ${h.goal} %). Ilgas atsakymas su „vandeniu“ panašumą mažina.`;
+  $("cmpOriginal").innerHTML = highlight(h.text, a.result, "w-miss").replace(/\n/g, "<br>");
+  $("cmpResult").innerHTML = highlight(a.result, h.text, "").replace(/\n/g, "<br>");
+}
+
+function renderAll() { renderTabs(); renderHole(); renderAttempts(); renderScorecard(); }
+
+// ---------- Veiksmai ----------
+["prompt", "result"].forEach(id => $(id).addEventListener("input", () => {
+  const h = hole();
+  S.drafts[h.id] = { prompt: $("prompt").value, result: $("result").value };
+  renderCounter(); save();
+}));
+
+$("check").addEventListener("click", () => {
+  const h = hole();
+  const prompt = $("prompt").value.trim(), result = $("result").value.trim();
+  const strokes = words(prompt).length;
+  const penalty = !!copiedPhrase(h.text, prompt, h.copy);
+  const sim = similarity(h.text, result);
+  const a = { prompt, result, strokes, sim, penalty, holed: !penalty && sim >= h.goal };
+  (S.attempts[h.id] = S.attempts[h.id] || []).push(a);
+  S.drafts[h.id] = { prompt, result: "" };
+  renderAll(); showFeedback(a); save();
+  $("feedback").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+
+$("reset").addEventListener("click", () => {
+  if (!confirm("Pradėti iš naujo? Visi bandymai bus ištrinti.")) return;
+  const custom = S.custom;
+  S = fresh(); S.custom = custom;
+  $("feedback").hidden = true; stopTimer(); renderAll(); save();
+});
+
+// Mokytojo duobutė
+function renderCustomForm() {
+  if (S.custom) {
+    $("customText").value = S.custom.text; $("customPar").value = S.custom.par; $("customGoal").value = S.custom.goal;
+    $("shareLink").value = location.href.split("#")[0] + "#t=" + encodeCustom(S.custom);
+  } else $("shareLink").value = "";
+}
+$("saveCustom").addEventListener("click", () => {
+  const text = $("customText").value.trim();
+  if (!text) return;
+  S.custom = { text, par: Math.max(1, Math.round(+$("customPar").value) || 10), goal: Math.min(100, Math.max(10, Math.round(+$("customGoal").value) || 60)) };
+  delete S.attempts.custom; delete S.drafts.custom;
+  S.hole = "custom"; renderCustomForm(); renderAll(); save();
+});
+$("removeCustom").addEventListener("click", () => {
+  S.custom = null; delete S.attempts.custom; delete S.drafts.custom;
+  if (S.hole === "custom") S.hole = "h1";
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+  $("customText").value = ""; renderCustomForm(); renderAll(); save();
+});
+$("copyLink").addEventListener("click", async () => {
+  if (!$("shareLink").value) return;
+  try { await navigator.clipboard.writeText($("shareLink").value); $("linkMsg").textContent = "Nukopijuota!"; }
+  catch (e) { $("shareLink").select(); $("linkMsg").textContent = "Spauskite Ctrl+C"; }
+  setTimeout(() => { $("linkMsg").textContent = ""; }, 2500);
+});
+
+// 5 min laikmatis vienai duobutei
+let timerId = null;
+const timerEl = $("timer");
+const startBtn = $("startTimer");
+function stopTimer() {
+  clearInterval(timerId); timerId = null;
+  timerEl.textContent = "5:00"; timerEl.classList.remove("over");
+  startBtn.textContent = "▶ Pradėti 5 min";
+}
+startBtn.addEventListener("click", () => {
+  if (timerId) return stopTimer();
+  const end = Date.now() + 5 * 60 * 1000;
+  startBtn.textContent = "■ Sustabdyti";
+  const tick = () => {
+    const left = Math.round((end - Date.now()) / 1000);
+    const a = Math.abs(left);
+    timerEl.textContent = (left < 0 ? "−" : "") + Math.floor(a / 60) + ":" + String(a % 60).padStart(2, "0");
+    timerEl.classList.toggle("over", left < 0);
+  };
+  tick(); timerId = setInterval(tick, 500);
+});
+
+renderCustomForm();
+renderAll();
+save();
+</script>
+</body>
+</html>
