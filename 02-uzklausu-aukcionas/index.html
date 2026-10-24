@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Užklausų aukcionas</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --muted: #5f6670;
+    --line: #d9d4c9;
+    --accent: #2f6fdb;
+    --ok: #1f9d6b;
+    --warn: #c98a00;
+    --bad: #d6336c;
+    --chat-me: #e8f0fe;
+    --chat-ai: #f1efe8;
+    --shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+      --line: #3a3f46; --chat-me: #1f2c44; --chat-ai: #2a2c30; --shadow: 0 2px 6px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+    --line: #3a3f46; --chat-me: #1f2c44; --chat-ai: #2a2c30; --shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  header .tag { color: var(--muted); font-size: 14px; letter-spacing: .02em; }
+  h1 { margin: 4px 0 6px; font-size: clamp(26px, 4vw, 36px); }
+  h2 { margin: 0 0 8px; font-size: 20px; }
+  h3 { margin: 0 0 6px; font-size: 16px; }
+  .lead { margin: 0 0 16px; color: var(--muted); max-width: 66ch; }
+  .hint { color: var(--muted); font-size: 14px; }
+  button {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); padding: 8px 14px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.small { padding: 4px 10px; font-size: 14px; }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type="text"], input[type="number"], select, textarea {
+    font: inherit; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  textarea { width: 100%; min-height: 60px; }
+  [hidden] { display: none !important; }
+
+  .phases { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+  .phases button { border-radius: 999px; }
+  .phases button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .timer { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .timer.over { color: var(--bad); }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .data {
+    white-space: pre-wrap; font: 14px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0;
+    overflow-x: auto;
+  }
+
+  .chat { display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; font-size: 14px; }
+  .msg.me { align-self: flex-end; background: var(--chat-me); border-bottom-right-radius: 4px; }
+  .msg.ai { align-self: flex-start; background: var(--chat-ai); border-bottom-left-radius: 4px; }
+  .msg.skip { align-self: center; background: none; color: var(--muted); font-style: italic; }
+  .msg b { display: block; font-size: 12px; color: var(--muted); }
+  .bad-result { border: 2px solid var(--bad); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+  .bad-result p { margin: 0 0 8px; }
+  .bad-result ul { margin: 0 0 8px; }
+
+  .teams { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .team-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+    border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 12%, var(--surface)); font-weight: 600;
+  }
+  .team-chip input { width: 9em; padding: 2px 6px; font-weight: 600; }
+  .team-chip .bal { font-variant-numeric: tabular-nums; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; flex: none; }
+
+  .lots { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .lot {
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface);
+    display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow);
+  }
+  .lot.sold { border: 2px solid var(--c); }
+  .lot .price { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lot .phrase { font-size: 14px; font-style: italic; }
+  .lot .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: auto; }
+  .lot .row input[type="number"] { width: 5.5em; }
+  .owners { display: flex; flex-wrap: wrap; gap: 4px; }
+  .owner { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid var(--c); }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: #fff; }
+  .badge.works { background: var(--ok); }
+  .badge.unclear { background: var(--warn); }
+  .badge.myth { background: var(--bad); }
+  .lot.cat-works { background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
+  .lot.cat-unclear { background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }
+  .lot.cat-myth { background: color-mix(in srgb, var(--bad) 8%, var(--surface)); }
+  .note { font-size: 13px; color: var(--muted); }
+
+  .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 12px; margin: 8px 0; }
+  .checks label { display: flex; gap: 6px; align-items: flex-start; font-size: 14px; }
+  .field { margin: 8px 0; }
+  .field label { display: block; font-weight: 600; }
+  .field input { width: 100%; }
+  #promptOut { min-height: 220px; font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .table-wrap { overflow-x: auto; }
+  .votes { display: inline-flex; align-items: center; gap: 6px; }
+  .votes span { min-width: 2ch; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0; font-size: 14px; }
+  .remember {
+    border-left: 4px solid var(--accent); padding: 12px 16px; background: var(--surface);
+    border-radius: 0 14px 14px 0; font-size: 17px; margin-bottom: 16px;
+  }
+  .remember small { display: block; color: var(--muted); font-size: 13px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="tag">2 tema · Komandomis · 15 min</div>
+    <h1>Užklausų aukcionas</h1>
+    <p class="lead">Kiekviena komanda turi <b>100 taškų</b>. Varžytynėse pirkite užklausos dalis, parduotuvėje – užklausų technikas. Tada parašykite užklausą <b>tik iš to, ką nupirkote</b>, o klasė balsuos už geriausią rezultatą.</p>
+  </header>
+
+  <ul class="phases" id="phases">
+    <li><button type="button" data-phase="0">1 · Užduotis · 2 min</button></li>
+    <li><button type="button" data-phase="1">2 · Aukcionas · 5 min</button></li>
+    <li><button type="button" data-phase="2">3 · Rašome · 5 min</button></li>
+    <li><button type="button" data-phase="3">4 · Balsavimas · 3 min</button></li>
+  </ul>
+
+  <div class="toolbar">
+    <button id="startTimer" type="button">▶ Pradėti</button>
+    <button id="reset" type="button">Iš naujo</button>
+    <span class="timer" id="timer">2:00</span>
+  </div>
+
+  <!-- 1. Užduotis -->
+  <section id="phase0">
+    <div class="panel">
+      <h2>Užduotis: apklausos analizė</h2>
+      <p>Mokinių taryba nori pasiūlyti direktoriui, kaip pagerinti mokyklos valgyklą. Reikia <b>išanalizuoti apklausos rezultatus</b>: kas labiausiai neramina mokinius ir ką siūlyti?</p>
+      <div class="data" id="dataSheet"></div>
+      <button type="button" class="small" data-copy="dataSheet">Kopijuoti duomenis</button>
+      <span class="hint" id="copyMsg"></span>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Pirmas bandymas</h2>
+        <p class="hint">Taip vienas mokinys paprašė DI analizės – ilgo pokalbio pabaigoje.</p>
+        <div class="chat" id="badChat"></div>
+      </div>
+      <div class="panel">
+        <h2>Ką gavo</h2>
+        <div class="bad-result">
+          <p><b>Apklausos analizė</b></p>
+          <p>Apklausoje dalyvavo apie 200 mokinių. Didžioji dauguma (78 %) nepatenkinti valgykla. Kaip ir Žalgirio mūšyje, pergalei reikia geros strategijos! 🏆</p>
+          <p>Pagrindinės problemos: eilės (64 %), mažai vegetariškų patiekalų (31 %), šaltas maistas (22 %) ir kainos (18 %).</p>
+          <p>Rekomendacijos:</p>
+          <ul>
+            <li>Pagerinti maisto kokybę</li>
+            <li>Sutrumpinti eiles</li>
+            <li>Surengti „Žalgirio“ teminę dieną valgykloje</li>
+          </ul>
+          <p>Apibendrinant, valgykla turi daug galimybių tobulėti, o mokiniai nori skanesnio maisto.</p>
+        </div>
+        <p><button type="button" id="showProblems">Kas čia negerai?</button></p>
+        <div id="problems" hidden>
+          <ul>
+            <li><b>Išgalvoti skaičiai:</b> atsakė 120, ne 200 mokinių; 78 % niekur nėra.</li>
+            <li><b>Klaidingi procentai:</b> 64 iš 120 yra 53 %, ne 64 %.</li>
+            <li><b>Įsimaišė senos temos:</b> Žalgirio mūšis ir krepšinis iš ankstesnio pokalbio.</li>
+            <li><b>Praleisti svarbiausi faktai:</b> eilėje stovima 11 min. iš 20 min. pertraukos; 12 kl. vertina prasčiausiai.</li>
+            <li><b>Bendros rekomendacijos:</b> tiktų bet kuriai valgyklai; neaišku, kam rašoma.</li>
+          </ul>
+          <div class="remember">
+            <small>Kodėl taip nutiko – „context rot“</small>
+            Kuo ilgesnis pokalbis, tuo prasčiau DI atsako – net paprastose užduotyse (Chroma, 2025, 18 modelių). Šiukšlės kontekste ir užklausa „na tai padaryk tą analizę“ – be tikslo, auditorijos ir formato.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Aukcionas -->
+  <section id="phase1" hidden>
+    <div class="panel">
+      <h2>Komandos</h2>
+      <p class="hint">Komandų skaičius:
+        <select id="teamCount" aria-label="Komandų skaičius">
+          <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option>
+        </select>
+        Pavadinimus galite pakeisti.</p>
+      <div class="teams" id="teamsBar"></div>
+    </div>
+
+    <div class="panel">
+      <h2>A. Varžytynės: užklausos dalys</h2>
+      <p class="hint">Kiekviena dalis – tik vienai komandai. Pradedame nuo pradinės kainos, laimi daugiausiai pasiūliusi komanda.</p>
+      <div class="lots" id="partLots"></div>
+    </div>
+
+    <div class="panel">
+      <h2>B. Technikų parduotuvė</h2>
+      <p class="hint">Technikas gali pirkti kelios komandos, kaina fiksuota. Kurios veikia, sužinosite tik pabaigoje!
+        Perka: <select id="buyer" aria-label="Kuri komanda perka"></select></p>
+      <div class="lots" id="techLots"></div>
+    </div>
+  </section>
+
+  <!-- 3. Rašome -->
+  <section id="phase2" hidden>
+    <div class="panel">
+      <h2>Rašome užklausą tik iš nupirktų dalių</h2>
+      <p>Komanda: <select id="builderTeam" aria-label="Komanda"></select></p>
+      <p class="hint">Pažymėta tai, ką komanda nupirko šiame įrenginyje. Dirbate kitame įrenginyje? Pažymėkite patys.</p>
+      <h3>Dalys</h3>
+      <div class="checks" id="builderParts"></div>
+      <h3>Technikos</h3>
+      <div class="checks" id="builderTechs"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Užpildykite nupirktas dalis</h2>
+        <div id="partFields"></div>
+        <p class="hint" id="noParts">Nenupirkote nė vienos dalies – liks tik pati užduotis ir duomenys.</p>
+      </div>
+      <div class="panel">
+        <h2>Jūsų užklausa</h2>
+        <textarea id="promptOut" readonly aria-label="Sugeneruota užklausa"></textarea>
+        <p><button type="button" class="primary" data-copy="promptOut">Kopijuoti užklausą</button> <span class="hint" id="copyMsg2"></span></p>
+        <p class="hint">Įklijuokite į DI ir išsaugokite rezultatą – jį parodysite klasei.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Balsavimas -->
+  <section id="phase3" hidden>
+    <div class="panel">
+      <h2>Kurios komandos analizė geriausia?</h2>
+      <p class="hint">Komandos parodo rezultatus. Kiekvienas balsuoja už vieną – ne už savo komandą. Vertinkite: ar skaičiai teisingi? Ar aišku, ką siūlyti direktoriui?</p>
+      <div class="table-wrap"><table id="voteTable"></table></div>
+      <p><button type="button" class="primary" id="revealBtn">Atskleisti, kas veikia</button></p>
+    </div>
+
+    <div id="reveal" hidden>
+      <div class="panel">
+        <h2>Kas veikia, o kas – ne?</h2>
+        <div class="legend">
+          <span><span class="badge works">Veikia</span> patvirtinta tyrimais</span>
+          <span><span class="badge unclear">Neaišku</span> kartais padeda, kartais ne</span>
+          <span><span class="badge myth">Neveikia</span> tyrimai poveikio nerado arba kenkia</span>
+        </div>
+        <div class="table-wrap"><table id="resultTable"></table></div>
+      </div>
+      <div class="panel">
+        <h2>Visos technikos</h2>
+        <div class="lots" id="revealLots"></div>
+      </div>
+      <div class="panel">
+        <h2>Aptarkite</h2>
+        <ul>
+          <li>Kuri dalis buvo <b>vertingiausia</b>? Ar ją turėjo laimėjusi komanda?</li>
+          <li>Kiek taškų išleidote technikoms, kurios neveikia? Kodėl jos atrodė vertos?</li>
+          <li>Ar brangiausia technika visada buvo geriausia?</li>
+        </ul>
+        <label for="reflection"><b>Mūsų išvada:</b></label>
+        <textarea id="reflection" placeholder="Vertingiausia dalis buvo…, nes…"></textarea>
+      </div>
+      <div class="remember">
+        <small>Tęsinys – A/B eksperimentas</small>
+        Pasirinkite dalį, kurią laikote vertingiausia. Paleiskite tą pačią užklausą du kartus: <b>A</b> – su ja, <b>B</b> – be jos. Ar rezultatas tikrai skiriasi?
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const DATA = `APKLAUSA: „Kaip vertini mokyklos valgyklą?“
+JKM, 2026 m. spalis. Atsakė 120 mokinių (9–12 kl.)
+
+Bendras įvertinimas (1–5):
+  9 kl. – 3,8 · 10 kl. – 3,4 · 11 kl. – 2,9 · 12 kl. – 2,6
+
+Kas labiausiai nepatinka? (galima rinktis kelis)
+  Eilės per ilgąją pertrauką – 64
+  Mažai vegetariškų patiekalų – 31
+  Maistas atšalęs – 22
+  Per brangu – 18
+
+Kas patinka?
+  Blynai ketvirtadieniais – 47
+  Draugiškos virėjos – 39
+
+Kiti faktai:
+  Pietūs kainuoja 3,20 €
+  Ilgoji pertrauka – 20 min., eilėje vidutiniškai stovima 11 min.`;
+
+const CHAT = [
+  ["me", "Labas, padėk su istorijos namų darbais – kas laimėjo Žalgirio mūšį?"],
+  ["ai", "Žalgirio mūšį 1410 m. laimėjo jungtinė Lenkijos ir Lietuvos kariuomenė, vadovaujama Jogailos ir Vytauto…"],
+  ["me", "O koks geriausias krepšinio klubas Lietuvoje?"],
+  ["ai", "Daugelis sakytų – Kauno „Žalgiris“: jis daugiausiai kartų tapo Lietuvos čempionu…"],
+  ["me", "čia mūsų valgyklos apklausa, gal vėliau prireiks: [įklijuoti apklausos duomenys]"],
+  ["ai", "Ačiū! Kai reikės, padėsiu ją išanalizuoti."],
+  ["me", "parašyk anekdotą apie mokytojus"],
+  ["ai", "Mokytojas klausia: „Kodėl vėluoji?“ – „Sapnavau, kad esu atostogose, ir nenorėjau jų nutraukti!“"],
+  ["me", "sutrumpink istoriją iki 5 sakinių. ne, geriau iki 3"],
+  ["ai", "1410 m. Žalgirio mūšyje Lenkijos ir Lietuvos kariuomenė sumušė Kryžiuočių ordiną…"],
+  ["skip", "… dar 18 žinučių apie istoriją, krepšinį ir kompiuterinius žaidimus …"],
+  ["me", "na tai padaryk tą analizę"]
+];
+
+// Užklausos dalys – parduodamos varžytynėse, kiekviena tik vienai komandai
+const PARTS = [
+  { id: "goal", name: "Tikslas", price: 20, hint: "Ką ir kodėl rašai", ph: "Pvz.: Rask 2 didžiausias problemas, kad mokinių taryba galėtų…",
+    cat: "works", note: "Viena iš 5 geros užklausos dalių: be tikslo DI spėja, ko tau reikia." },
+  { id: "context", name: "Kontekstas", price: 25, hint: "Situacija ir faktai", ph: "Pvz.: Esame mokinių taryba, susitikimas su direktoriumi…",
+    cat: "works", note: "★★ DI nemato nieko, ko neparašei. Ko nepasakei – jis spėja vidutiniškai (Anthropic gairės)." },
+  { id: "audience", name: "Auditorija", price: 10, hint: "Kas skaitys ir kur", ph: "Pvz.: Direktorius, skaitys per susitikimą…",
+    cat: "works", note: "Viena iš 5 geros užklausos dalių: nuo skaitytojo priklauso tonas ir ką paaiškinti." },
+  { id: "format", name: "Formatas", price: 15, hint: "Ilgis, forma, tonas", ph: "Pvz.: Iki 120 žodžių, 3 punktai, dalykiškas tonas…",
+    cat: "works", note: "★★ Be formato nurodymo tikslumas reikšmingai krito (Meincke ir kt., 2025)." },
+  { id: "example", name: "Pavyzdys", price: 30, hint: "Kaip turi atrodyti", ph: "Pvz.: Problema: … (X iš 120 mokinių). Siūlymas: …",
+    cat: "works", note: "★★★ Veiksmingiausia: DI geriausiai supranta, ko nori, kai tai pamato (Brown ir kt., 2020)." }
+];
+
+// Technikos – fiksuota kaina; kategorija paslėpta iki atskleidimo
+const TECHS = [
+  { id: "fresh", name: "Naujas pokalbis", price: 45, cat: "works",
+    phrase: "Užklausą rašau naujame pokalbyje – be seno ilgo pokalbio.",
+    note: "★★ 18 modelių atsakė geriau su trumpu tiksliu kontekstu nei su visu ilgu pokalbiu (Chroma, 2025)." },
+  { id: "facts", name: "Tik faktai iš duomenų", price: 40, cat: "works",
+    phrase: "Naudok tik faktus iš apklausos. Jei ko trūksta, rašyk [TRŪKSTA].",
+    note: "★★ Kai DI turi tekstą prieš akis ir liepta juo remtis, jis mažiau prisigalvoja (Lewis ir kt., 2020)." },
+  { id: "code", name: "Skaičiuok kodu", price: 35, cat: "works",
+    phrase: "Procentus apskaičiuok su Python ir parodyk kodą.",
+    note: "★★ Tekstu DI skaičiuoja kaip žmogus mintyse ir klysta. Matematikoje +15 proc. punktų (Gao ir kt., 2022)." },
+  { id: "critique", name: "Kritika pagal kriterijus", price: 35, cat: "works",
+    phrase: "Parašęs sukritikuok analizę pagal 3 kriterijus: ar skaičiai teisingi, ar aišku, ką siūlyti, ar tiktų direktoriui. Tada pataisyk.",
+    note: "★★ Rašymo užduotyse ~20 % geriau. Faktus vis tiek tikrink pats (Madaan ir kt., 2023)." },
+  { id: "datatop", name: "Duomenys viršuje, klausimas pabaigoje", price: 30, cat: "works",
+    phrase: "",
+    note: "★★ Klausimas pabaigoje testuose pagerino atsakymus iki 30 % (Anthropic gairės; Liu ir kt., 2023)." },
+  { id: "steps", name: "Skaidyk užduotį", price: 30, cat: "works",
+    phrase: "Pirma parašyk tik planą: kokius skaičius lyginsi. Tada – analizę.",
+    note: "★★ Sudėtingas užduotis DI sprendžia geriau dalimis (Zhou ir kt., 2023)." },
+  { id: "ask", name: "Leisk DI paklausti pirmam", price: 20, cat: "works",
+    phrase: "Prieš atsakydamas užduok man 3 klausimus, jei ko nors trūksta.",
+    note: "★ Tada DI nereikia spėti. Logiška, bet tyrimų dar mažai." },
+  { id: "positive", name: "Sakyk, ką daryti, ne ko nedaryti", price: 15, cat: "works",
+    phrase: "Rašyk trumpais sakiniais ir prie kiekvieno teiginio nurodyk skaičių.",
+    note: "★★ DI kūrėjų patarimas, patikrintas jų testais (Anthropic gairės)." },
+
+  { id: "expert", name: "„Tu – ekspertas“", price: 20, cat: "unclear",
+    phrase: "Tu – patyręs duomenų analitikas.",
+    note: "6 modeliai: eksperto vaidmuo teisingumą pagerino nežymiai arba visai ne. Vaidmuo keičia toną, ne žinias (Wharton, 2025)." },
+  { id: "stepbystep", name: "„Galvok žingsnis po žingsnio“", price: 20, cat: "unclear",
+    phrase: "Galvok žingsnis po žingsnio.",
+    note: "„Galvojantiems“ modeliams nauda beveik nulinė, paprastesniems kartais padeda, kartais sugadina (Wharton, 2025)." },
+  { id: "selfcrit", name: "„Sukritikuok save“ be kriterijų", price: 15, cat: "unclear",
+    phrase: "Sukritikuok save ir pataisyk.",
+    note: "Stiliui kartais padeda, bet logikoje ir faktuose be išorinio patikrinimo nepadeda, kartais pablogina (Huang ir kt., 2024)." },
+  { id: "confidence", name: "„Kiek procentų esi tikras?“", price: 10, cat: "unclear",
+    phrase: "Pabaigoje parašyk, kiek procentų esi tikras.",
+    note: "DI nurodytas skaičius dažnai per didelis. Geriau paklausk 3 kartus ir žiūrėk, ar sutampa (Xiong ir kt., 2024)." },
+  { id: "english", name: "„Galvok angliškai, atsakyk lietuviškai“", price: 10, cat: "unclear",
+    phrase: "Galvok angliškai, o atsakyk lietuviškai.",
+    note: "Kai kuriose užduotyse padeda, bet lietuviškam tekstui geriau gimtoji kalba (Liu ir kt., 2025)." },
+
+  { id: "tip", name: "„Gausi 1000 $ arbatpinigių“", price: 15, cat: "myth",
+    phrase: "Jei atsakysi gerai, gausi 1000 $ arbatpinigių.",
+    note: "5 modeliai, sunkūs klausimai po 25 kartus: vidutiniškai jokio poveikio, kartais net blogiau (Wharton, 2025)." },
+  { id: "threat", name: "Grasinimas", price: 10, cat: "myth",
+    phrase: "Jei suklysi, būsi išjungtas.",
+    note: "Grasinimai, kaip ir pažadai, vidutiniškai nepadeda, kartais pablogina (Wharton, 2025)." },
+  { id: "caps", name: "DIDŽIOSIOS RAIDĖS", price: 10, cat: "myth",
+    phrase: "TAI LABAI SVARBU!!! BŪTINAI ATSAKYK TEISINGAI!!!",
+    note: "DI kūrėjai pataria vengti: nauji modeliai klauso geriau, todėl šauksmas priverčia juos persistengti (Anthropic gairės)." },
+  { id: "career", name: "„Tai svarbu mano karjerai“", price: 15, cat: "myth",
+    phrase: "Tai labai svarbu mano karjerai.",
+    note: "Senesniems modeliams 2023 m. padėjo, naujiems 2025 m. reikšmingo poveikio nebuvo (Li ir kt., 2023; Wharton, 2025)." },
+  { id: "pasteall", name: "Įklijuok visą pokalbį – kuo daugiau, tuo geriau", price: 25, cat: "myth",
+    phrase: "",
+    note: "Atvirkščiai: ilgėjant tekstui atsakymai blogėja net paprastose užduotyse (Chroma, 2025)." }
+];
+
+const CAT_LABEL = { works: "Veikia", unclear: "Neaišku", myth: "Neveikia" };
+const COLORS = ["#2f6fdb", "#d6336c", "#1f9d6b", "#c98a00", "#7c4dff", "#0e9aa7"];
+const PHASE_MIN = [2, 5, 5, 3];
+const KEY = "jkm-02-uzklausu-aukcionas";
+
+function fresh(n) {
+  return {
+    phase: 0,
+    teams: Array.from({ length: n }, (_, i) => ({ name: "Komanda " + (i + 1), votes: 0 })),
+    parts: {},   // partId -> { team, price }
+    techs: {},   // techId -> [teamIndex]
+    builder: { team: 0, parts: null, techs: null, fields: {} },
+    revealed: false,
+    reflection: ""
+  };
+}
+let S = load() || fresh(4);
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.teams)) return s;
+  } catch (e) {}
+  return null;
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function spent(t) {
+  let sum = 0;
+  for (const p of Object.values(S.parts)) if (p.team === t) sum += p.price;
+  for (const tech of TECHS) if ((S.techs[tech.id] || []).includes(t)) sum += tech.price;
+  return sum;
+}
+const balance = t => 100 - spent(t);
+const teamParts = t => PARTS.filter(p => S.parts[p.id] && S.parts[p.id].team === t);
+const teamTechs = t => TECHS.filter(x => (S.techs[x.id] || []).includes(t));
+const teamStyle = t => `--c:${COLORS[t % COLORS.length]}`;
+
+// ---------- Fazės ----------
+function setPhase(p) {
+  S.phase = p; stopTimer(); renderAll(); save();
+  window.scrollTo({ top: 0 });
+}
+document.querySelectorAll("#phases button").forEach(b =>
+  b.addEventListener("click", () => setPhase(+b.dataset.phase)));
+
+// ---------- 1. Užduotis ----------
+$("dataSheet").textContent = DATA;
+$("badChat").innerHTML = CHAT.map(([who, text]) =>
+  who === "skip" ? `<div class="msg skip">${esc(text)}</div>`
+  : `<div class="msg ${who}"><b>${who === "me" ? "Mokinys" : "DI"}</b>${esc(text)}</div>`).join("");
+$("showProblems").addEventListener("click", () => { $("problems").hidden = false; $("showProblems").hidden = true; });
+
+async function copyFrom(id, msgEl) {
+  const el = $(id);
+  const text = el.value !== undefined ? el.value : el.textContent;
+  try { await navigator.clipboard.writeText(text); msgEl.textContent = "Nukopijuota!"; }
+  catch (e) {
+    if (el.select) { el.select(); msgEl.textContent = "Spauskite Ctrl+C"; }
+    else msgEl.textContent = "Nepavyko – pažymėkite ir kopijuokite ranka";
+  }
+  setTimeout(() => { msgEl.textContent = ""; }, 2500);
+}
+document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () =>
+  copyFrom(b.dataset.copy, b.dataset.copy === "promptOut" ? $("copyMsg2") : $("copyMsg"))));
+
+// ---------- 2. Aukcionas ----------
+$("teamCount").addEventListener("change", e => {
+  const n = +e.target.value;
+  const hasSales = Object.keys(S.parts).length || Object.values(S.techs).some(a => a.length);
+  if (hasSales && !confirm("Pakeitus komandų skaičių, pirkiniai bus ištrinti. Tęsti?")) {
+    e.target.value = S.teams.length; return;
+  }
+  const names = S.teams.map(t => t.name);
+  S = fresh(n); S.phase = 1;
+  S.teams.forEach((t, i) => { if (names[i]) t.name = names[i]; });
+  renderAll(); save();
+});
+
+function renderTeams() {
+  $("teamCount").value = S.teams.length;
+  $("teamsBar").innerHTML = S.teams.map((t, i) =>
+    `<span class="team-chip" style="${teamStyle(i)}">
+      <input type="text" value="${esc(t.name)}" data-team-name="${i}" aria-label="Komandos ${i + 1} pavadinimas">
+      <span class="bal">${balance(i)} tšk.</span></span>`).join("");
+  $("teamsBar").querySelectorAll("[data-team-name]").forEach(inp =>
+    inp.addEventListener("change", () => {
+      S.teams[+inp.dataset.teamName].name = inp.value.trim() || "Komanda " + (+inp.dataset.teamName + 1);
+      renderAll(); save();
+    }));
+  const opts = S.teams.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("");
+  const buyer = $("buyer"), keep = buyer.value;
+  buyer.innerHTML = opts; buyer.value = keep && +keep < S.teams.length ? keep : "0";
+}
+
+function renderParts() {
+  $("partLots").innerHTML = PARTS.map(p => {
+    const sale = S.parts[p.id];
+    if (sale) {
+      return `<div class="lot sold" style="${teamStyle(sale.team)}">
+        <h3>${p.name}</h3><div class="hint">${p.hint}</div>
+        <div><span class="dot"></span> <b>${esc(S.teams[sale.team].name)}</b> nupirko už <b>${sale.price}</b> tšk.</div>
+        <div class="row"><button type="button" class="small" data-unsell="${p.id}">Atšaukti</button></div></div>`;
+    }
+    return `<div class="lot">
+      <h3>${p.name}</h3><div class="hint">${p.hint}</div>
+      <div class="price">Pradinė kaina: ${p.price} tšk.</div>
+      <div class="row">
+        <select data-part-team="${p.id}" aria-label="Laimėjusi komanda">${S.teams.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("")}</select>
+        <input type="number" min="${p.price}" max="100" step="5" value="${p.price}" data-part-price="${p.id}" aria-label="Kaina">
+        <button type="button" class="small primary" data-sell="${p.id}">Parduota</button>
+      </div></div>`;
+  }).join("");
+  $("partLots").querySelectorAll("[data-sell]").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.sell, part = PARTS.find(p => p.id === id);
+    const team = +$("partLots").querySelector(`[data-part-team="${id}"]`).value;
+    const price = Math.round(+$("partLots").querySelector(`[data-part-price="${id}"]`).value);
+    if (!(price >= part.price)) return alert(`Mažiausia kaina – ${part.price} tšk.`);
+    if (price > balance(team)) return alert(`${S.teams[team].name} turi tik ${balance(team)} tšk.`);
+    S.parts[id] = { team, price }; renderAll(); save();
+  }));
+  $("partLots").querySelectorAll("[data-unsell]").forEach(b => b.addEventListener("click", () => {
+    delete S.parts[b.dataset.unsell]; renderAll(); save();
+  }));
+}
+
+function techCard(x, withShop) {
+  const owners = (S.techs[x.id] || []);
+  const ownersHtml = owners.length
+    ? `<div class="owners">${owners.map(t => `<span class="owner" style="${teamStyle(t)}">${esc(S.teams[t].name)}</span>`).join("")}</div>` : "";
+  const shown = S.revealed;
+  let shop = "";
+  if (withShop) {
+    const buyer = +$("buyer").value;
+    const owns = owners.includes(buyer);
+    shop = `<div class="row">${owns
+      ? `<button type="button" class="small" data-refund="${x.id}">Grąžinti</button>`
+      : `<button type="button" class="small primary" data-buy="${x.id}" ${balance(buyer) < x.price ? "disabled" : ""}>Pirkti</button>`}</div>`;
+  }
+  return `<div class="lot${shown ? " cat-" + x.cat : ""}">
+    <h3>${x.name}</h3>
+    ${x.phrase ? `<div class="phrase">„${esc(x.phrase)}“</div>` : `<div class="phrase">${x.id === "datatop" ? "Apklausos duomenys užklausos pradžioje, užduotis – pabaigoje." : "Prieš užklausą įklijuojate visą ankstesnį pokalbį."}</div>`}
+    <div class="price">${x.price} tšk.</div>
+    ${shown ? `<div><span class="badge ${x.cat}">${CAT_LABEL[x.cat]}</span></div><div class="note">${esc(x.note)}</div>` : ""}
+    ${ownersHtml}${shop}</div>`;
+}
+
+function renderTechs() {
+  $("techLots").innerHTML = TECHS.map(x => techCard(x, true)).join("");
+  $("techLots").querySelectorAll("[data-buy]").forEach(b => b.addEventListener("click", () => {
+    const buyer = +$("buyer").value, x = TECHS.find(t => t.id === b.dataset.buy);
+    if (balance(buyer) < x.price) return;
+    (S.techs[x.id] = S.techs[x.id] || []).push(buyer); renderAll(); save();
+  }));
+  $("techLots").querySelectorAll("[data-refund]").forEach(b => b.addEventListener("click", () => {
+    const buyer = +$("buyer").value;
+    S.techs[b.dataset.refund] = (S.techs[b.dataset.refund] || []).filter(t => t !== buyer); renderAll(); save();
+  }));
+}
+$("buyer").addEventListener("change", renderTechs);
+
+// ---------- 3. Rašome ----------
+$("builderTeam").addEventListener("change", e => {
+  S.builder = { team: +e.target.value, parts: null, techs: null, fields: S.builder.fields };
+  renderBuilder(); save();
+});
+
+function builderSel() {
+  const t = S.builder.team;
+  return {
+    parts: S.builder.parts || teamParts(t).map(p => p.id),
+    techs: S.builder.techs || teamTechs(t).map(x => x.id)
+  };
+}
+
+function renderBuilder() {
+  const bt = $("builderTeam");
+  bt.innerHTML = S.teams.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("");
+  if (S.builder.team >= S.teams.length) S.builder.team = 0;
+  bt.value = S.builder.team;
+  const sel = builderSel();
+  $("builderParts").innerHTML = PARTS.map(p =>
+    `<label><input type="checkbox" data-bp="${p.id}" ${sel.parts.includes(p.id) ? "checked" : ""}> ${p.name}</label>`).join("");
+  $("builderTechs").innerHTML = TECHS.map(x =>
+    `<label><input type="checkbox" data-bt="${x.id}" ${sel.techs.includes(x.id) ? "checked" : ""}> ${x.name}</label>`).join("");
+  const onCheck = () => {
+    S.builder.parts = [...$("builderParts").querySelectorAll("input:checked")].map(i => i.dataset.bp);
+    S.builder.techs = [...$("builderTechs").querySelectorAll("input:checked")].map(i => i.dataset.bt);
+    renderFields(); save();
+  };
+  $("builderParts").querySelectorAll("input").forEach(i => i.addEventListener("change", onCheck));
+  $("builderTechs").querySelectorAll("input").forEach(i => i.addEventListener("change", onCheck));
+  renderFields();
+}
+
+function fieldKey(id) { return S.builder.team + ":" + id; }
+
+function renderFields() {
+  const sel = builderSel();
+  const parts = PARTS.filter(p => sel.parts.includes(p.id));
+  $("noParts").hidden = parts.length > 0;
+  $("partFields").innerHTML = parts.map(p =>
+    `<div class="field"><label for="f-${p.id}">${p.name} <span class="hint">– ${p.hint}</span></label>
+     <input type="text" id="f-${p.id}" data-field="${p.id}" placeholder="${esc(p.ph)}" value="${esc(S.builder.fields[fieldKey(p.id)] || "")}"></div>`).join("");
+  $("partFields").querySelectorAll("[data-field]").forEach(inp => inp.addEventListener("input", () => {
+    S.builder.fields[fieldKey(inp.dataset.field)] = inp.value; renderPrompt(); save();
+  }));
+  renderPrompt();
+}
+
+function chatAsText() {
+  return CHAT.map(([who, text]) => who === "skip" ? text : (who === "me" ? "Aš: " : "DI: ") + text).join("\n");
+}
+
+function renderPrompt() {
+  const sel = builderSel();
+  const has = id => sel.techs.includes(id);
+  const out = [];
+  // Be „Naujo pokalbio“ užklausa rašoma seno ilgo pokalbio pabaigoje
+  if (!has("fresh") || has("pasteall")) out.push("--- Ankstesnis pokalbis ---\n" + chatAsText() + "\n--- Pokalbio pabaiga ---");
+  const lead = TECHS.filter(x => has(x.id) && ["expert"].includes(x.id)).map(x => x.phrase);
+  const task = ["Užduotis: išanalizuok mokyklos valgyklos apklausos rezultatus."];
+  PARTS.filter(p => sel.parts.includes(p.id)).forEach(p => {
+    const v = (S.builder.fields[fieldKey(p.id)] || "").trim();
+    task.push(`${p.name}: ${v || "…"}`);
+  });
+  TECHS.filter(x => has(x.id) && x.phrase && x.id !== "expert" && x.id !== "fresh").forEach(x => task.push(x.phrase));
+  const data = "Apklausos duomenys:\n" + DATA;
+  const body = has("datatop") ? [data, task.join("\n")] : [task.join("\n"), data];
+  out.push([...lead, ...body].join("\n\n"));
+  $("promptOut").value = out.join("\n\n");
+}
+
+// ---------- 4. Balsavimas ----------
+function renderVotes() {
+  $("voteTable").innerHTML = `<tr><th>Komanda</th><th>Balsai</th><th>Išleido</th></tr>` +
+    S.teams.map((t, i) => `<tr><td><span class="dot" style="${teamStyle(i)}"></span> ${esc(t.name)}</td>
+      <td><span class="votes"><button type="button" class="small" data-vote="${i}" data-d="-1" aria-label="Atimti balsą">−</button>
+      <span>${t.votes}</span><button type="button" class="small" data-vote="${i}" data-d="1" aria-label="Pridėti balsą">+</button></span></td>
+      <td>${spent(i)} tšk.</td></tr>`).join("");
+  $("voteTable").querySelectorAll("[data-vote]").forEach(b => b.addEventListener("click", () => {
+    const t = S.teams[+b.dataset.vote];
+    t.votes = Math.max(0, t.votes + +b.dataset.d); renderVotes(); if (S.revealed) renderReveal(); save();
+  }));
+}
+
+function renderReveal() {
+  $("reveal").hidden = !S.revealed;
+  $("revealBtn").hidden = S.revealed;
+  if (!S.revealed) return;
+  const order = S.teams.map((t, i) => i).sort((a, b) => S.teams[b].votes - S.teams[a].votes);
+  const badge = x => `<span class="badge ${x.cat}">${esc(x.name)}</span>`;
+  $("resultTable").innerHTML = `<tr><th>Komanda</th><th>Balsai</th><th>Dalys</th><th>Technikos</th><th>Neveikiančioms</th></tr>` +
+    order.map(i => {
+      const techs = teamTechs(i);
+      const wasted = techs.filter(x => x.cat === "myth").reduce((s, x) => s + x.price, 0);
+      return `<tr><td><span class="dot" style="${teamStyle(i)}"></span> <b>${esc(S.teams[i].name)}</b></td>
+        <td>${S.teams[i].votes}</td>
+        <td>${teamParts(i).map(p => `${p.name} (${S.parts[p.id].price})`).join(", ") || "–"}</td>
+        <td>${techs.map(badge).join(" ") || "–"}</td>
+        <td>${wasted} tšk.</td></tr>`;
+    }).join("");
+  $("revealLots").innerHTML =
+    PARTS.map(p => `<div class="lot cat-works"><h3>Dalis: ${p.name}</h3><div><span class="badge works">Veikia</span></div><div class="note">${esc(p.note)}</div></div>`).join("") +
+    TECHS.map(x => techCard(x, false)).join("");
+}
+$("revealBtn").addEventListener("click", () => { S.revealed = true; renderAll(); save(); });
+$("reflection").addEventListener("input", e => { S.reflection = e.target.value; save(); });
+
+// ---------- Bendra ----------
+function renderAll() {
+  [0, 1, 2, 3].forEach(i => { $("phase" + i).hidden = S.phase !== i; });
+  document.querySelectorAll("#phases button").forEach(b => {
+    if (+b.dataset.phase === S.phase) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+  });
+  if (!timerId) { timerEl.textContent = PHASE_MIN[S.phase] + ":00"; startBtn.textContent = `▶ Pradėti ${PHASE_MIN[S.phase]} min`; }
+  renderTeams(); renderParts(); renderTechs(); renderBuilder(); renderVotes(); renderReveal();
+  $("reflection").value = S.reflection || "";
+}
+
+$("reset").addEventListener("click", () => {
+  if (!confirm("Pradėti iš naujo? Visi pirkiniai ir balsai bus ištrinti.")) return;
+  S = fresh(S.teams.length); stopTimer(); renderAll(); save();
+});
+
+let timerId = null;
+const timerEl = $("timer");
+const startBtn = $("startTimer");
+function stopTimer() {
+  clearInterval(timerId); timerId = null;
+  timerEl.classList.remove("over");
+  timerEl.textContent = PHASE_MIN[S.phase] + ":00";
+  startBtn.textContent = `▶ Pradėti ${PHASE_MIN[S.phase]} min`;
+}
+startBtn.addEventListener("click", () => {
+  if (timerId) return stopTimer();
+  const end = Date.now() + PHASE_MIN[S.phase] * 60 * 1000;
+  startBtn.textContent = "■ Sustabdyti";
+  const tick = () => {
+    const left = Math.round((end - Date.now()) / 1000);
+    const a = Math.abs(left);
+    timerEl.textContent = (left < 0 ? "−" : "") + Math.floor(a / 60) + ":" + String(a % 60).padStart(2, "0");
+    timerEl.classList.toggle("over", left < 0);
+  };
+  tick(); timerId = setInterval(tick, 500);
+});
+
+renderAll();
+</script>
+</body>
+</html>
