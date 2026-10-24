@@ -1,4 +1,4 @@
-// Užduoties viršutinė juosta: grįžimas į pradinį puslapį ir šios užduoties atsakymų eksportas.
+// Užduoties viršutinė juosta: grįžimas į pradinį puslapį, šios užduoties atsakymų eksportas ir įkėlimas.
 // Naudojimas: <script src="../shared/nav.js" data-key="jkm-…" defer></script>
 // Failo formatas toks pat kaip pradinio puslapio eksporto, todėl jį galima ten įkelti.
 (() => {
@@ -7,11 +7,13 @@
   const style = document.createElement("style");
   style.textContent = `
     .jkm-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 0 0 12px; }
-    .jkm-nav a, .jkm-nav button {
+    .jkm-nav a, .jkm-nav button, .jkm-nav .jkm-file {
       font: inherit; font-size: 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
       color: var(--ink); padding: 6px 12px; cursor: pointer; text-decoration: none;
     }
-    .jkm-nav a:hover, .jkm-nav button:hover { border-color: var(--accent); }
+    .jkm-nav a:hover, .jkm-nav button:hover, .jkm-nav .jkm-file:hover { border-color: var(--accent); }
+    .jkm-nav .jkm-file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .jkm-nav .jkm-file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
     .jkm-nav .jkm-export { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .jkm-nav output { font-size: 13px; color: var(--muted); }
   `;
@@ -25,6 +27,7 @@
     <span class="jkm-export">
       <output role="status"></output>
       <button type="button">Atsisiųsti atsakymus</button>
+      <label class="jkm-file">Įkelti atsakymus<input type="file" accept=".json,application/json"></label>
     </span>`;
   const main = document.querySelector("main");
   main.insertBefore(nav, main.firstChild);
@@ -43,5 +46,25 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     msg.textContent = "Išsaugota atsisiuntimų aplanke.";
+  });
+
+  // Įkelia tik šios užduoties atsakymus – tinka ir pradinio puslapio viso progreso failas
+  nav.querySelector("input[type=file]").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    let file;
+    try { file = JSON.parse(await f.text()); } catch (err) { file = null; }
+    if (!file || file.app !== "jkm-uzduotys" || !file.data || typeof file.data !== "object") {
+      msg.textContent = "Tai ne JKM atsakymų failas."; return;
+    }
+    const value = file.data[KEY];
+    if (typeof value !== "string") { msg.textContent = "Šiame faile nėra šios užduoties atsakymų."; return; }
+    let current = null;
+    try { current = localStorage.getItem(KEY); } catch (err) {}
+    if (current !== null && !confirm("Dabartiniai šios užduoties atsakymai bus pakeisti atsakymais iš failo. Tęsti?")) return;
+    try { localStorage.setItem(KEY, value); }
+    catch (err) { msg.textContent = "Nepavyko įrašyti – gal naršyklėje išjungta saugykla?"; return; }
+    location.reload();
   });
 })();

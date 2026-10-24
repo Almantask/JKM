@@ -11,4 +11,4 @@ JKM pamokų interaktyvios užduotys
 
 ## Progresas
 
-Kiekviena užduotis saugo progresą naršyklėje (localStorage, raktai `jkm-…`). Mygtukas „Iš naujo“ ištrina užduoties progresą. Pradiniame puslapyje visą progresą galima išsaugoti į failą ir vėliau įkelti. Kiekvienoje užduotyje mygtukas „Atsisiųsti atsakymus“ išsaugo tik tos užduoties atsakymus; tokį failą taip pat galima įkelti pradiniame puslapyje (kitų užduočių progresas lieka).
+Kiekviena užduotis saugo progresą naršyklėje (localStorage, raktai `jkm-…`). Mygtukas „Iš naujo“ ištrina užduoties progresą. Pradiniame puslapyje visą progresą galima išsaugoti į failą ir vėliau įkelti. Kiekvienoje užduotyje mygtukas „Atsisiųsti atsakymus“ išsaugo tik tos užduoties atsakymus; „Įkelti atsakymus“ juos grąžina. Tokį failą galima įkelti ir pradiniame puslapyje (kitų užduočių progresas lieka).
