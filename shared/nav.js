@@ -1,5 +1,5 @@
 // Užduoties viršutinė juosta: grįžimas į pradinį puslapį, šios užduoties atsakymų eksportas ir įkėlimas.
-// Naudojimas: <script src="../shared/nav.js" data-key="jkm-…" defer></script>
+// Naudojimas: <script src="../shared/nav.js?v=N" data-key="jkm-…" defer></script> – pakeitus šį failą, padidink N visose užduotyse.
 // Failo formatas toks pat kaip pradinio puslapio eksporto, todėl jį galima ten įkelti.
 (() => {
   const KEY = document.currentScript.dataset.key;
