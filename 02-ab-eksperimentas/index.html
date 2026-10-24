@@ -83,6 +83,9 @@
   .tech details { margin-top: 10px; font-size: 14px; border-top: 1px dashed var(--line); padding-top: 8px; }
   .tech details summary { cursor: pointer; font-weight: 700; }
   .tech details p { margin: 6px 0 0; }
+  .skipped { margin-top: 12px; font-size: 14px; }
+  .skipped summary { cursor: pointer; font-weight: 600; }
+  .skipped ul { margin: 6px 0 0; padding-left: 20px; }
   .verdict-tag { display: inline-block; border-radius: 999px; padding: 1px 10px; font-size: 13px; font-weight: 700; color: #fff; }
   .v-works { background: var(--green); }
   .v-myth { background: var(--bad); }
@@ -151,8 +154,19 @@
 
   <section class="panel">
     <h2>Tavo 3 technikos</h2>
-    <p class="hint">Technikos parinktos atsitiktinai – klasės draugo gali būti kitos. Vienos iš jų tikrai veikia, kitos – mitai. Prieš atsiversdamas „Kodėl…“, pabandyk atspėti pats.</p>
+    <p class="hint">Technikos parinktos atsitiktinai – klasės draugo gali būti kitos. Dvi iš jų patvirtintos tyrimais arba praktika, viena – mitas arba neaiškus patarimas. Kuri? Prieš atsiversdamas „Kodėl…“, pabandyk atspėti pats.</p>
     <div class="techs" id="techs"></div>
+    <details class="skipped">
+      <summary>Kodėl kai kurių technikų iš gerųjų praktikų čia nėra?</summary>
+      <p>Technikos traukiamos iš visų, kurias galima pritaikyti rašant skelbimą. Šios rašymo užklausos nepakeičia, todėl čia netinka:</p>
+      <ul>
+        <li><b>Mokymosi praktikos</b> (tikrink save klausimais, kartok su pertraukomis, DI – treneris, paaiškink savais žodžiais ir kt.) – jos padeda išmokti pačiam, o ne gauti geresnį tekstą.</li>
+        <li><b>Faktų tikrinimas už pokalbio ribų</b>, skaičiavimai su kodu, paieška, metai prie faktų, klausk siaurai ir neutraliai, pataikavimo testas – skirti klausimams apie faktus, o skelbimo faktus jau žinai.</li>
+        <li><b>Paklausk kelis kartus</b> – tai ne užklausos dalis, o patikrinimas. Išbandyk: paleisk bazinę užklausą dar kartą ir pažiūrėk, kiek skiriasi atsakymai.</li>
+        <li><b>Naujas pokalbis</b> – čia tai jau taisyklė kiekvienai užklausai. <b>Išsaugok veikusias užklausas</b> – tai įprotis po darbo.</li>
+        <li><b>Spąstai</b> („skamba užtikrintai – vadinasi, tiesa“, „DI idėjos – mano idėjos“ ir kt.) – tai įsitikinimai, o ne užklausų gudrybės.</li>
+      </ul>
+    </details>
   </section>
 
   <section class="panel">
@@ -195,9 +209,7 @@
     <h2>Ką pastebėjai?</h2>
     <label for="q1"><b>1.</b> Kuri viena technika pakeitė rezultatą labiausiai? Kas konkrečiai pasikeitė?</label>
     <textarea id="q1"></textarea>
-    <label for="q2"><b>2.</b> Ar „visos kartu“ buvo geriau už geriausią vieną techniką? Kodėl taip manai?</label>
-    <textarea id="q2"></textarea>
-    <label for="q3"><b>3.</b> Ar tavo rezultatai sutampa su tyrimais? Kas nustebino?</label>
+    <label for="q3"><b>2.</b> Ar tavo rezultatai sutampa su tyrimais? Kas nustebino?</label>
     <textarea id="q3"></textarea>
     <p class="hint">Atsakymai išsaugomi automatiškai. Pasidalyk jais su klase.</p>
   </section>
@@ -212,7 +224,10 @@
 const BASE = "Parašyk skelbimą mokyklos stendui: knygų mainų diena lapkričio 27 d., ketvirtadienį, 12:30–14:00 mokyklos bibliotekoje. Atsinešk vieną perskaitytą knygą ir išsinešk kitą.";
 
 // works: veikia (pagal tyrimus), myth: mitas, unclear: neaišku
+// before: true – pavyzdys dedamas prieš bazinę užklausą (ilgas tekstas viršuje)
+const LIBRARY = "Bibliotekos žinutė: „Mainams jau surinkta per 300 knygų: komiksai, fantastika, siaubo istorijos, sporto žvaigždžių biografijos ir knygos apie kompiuterinius žaidimus. Kiekvienas atėjęs gaus skirtuką, o 12:30 – trumpa viktorina su saldainiais.“";
 const TECHS = [
+  // ----- Bendros praktikos -----
   { id: "pavyzdys", name: "Duok pavyzdį ir pasakyk, ką iš jo perimti", verdict: "works", stars: "★★★",
     how: "Įklijuok trumpą kito skelbimo pavyzdį ir pasakyk, ką iš jo perimti (toną, ilgį, struktūrą), o ko – ne.",
     example: "Perimk šio skelbimo toną ir ilgį, ne turinį: „Šachmatų turnyras! Ketvirtadienį 15:00 aktų salėje. Atsinešk tik norą laimėti – lentas turim. Užsirašyk pas klasės vadovą.“",
@@ -225,6 +240,24 @@ const TECHS = [
     watch: "Ar skelbimas kalba su neskaitančiais, ar tik su knygų mėgėjais? Ar atsirado kas nors, ko bazinėje versijoje nebuvo?",
     why: "DI nemato nieko, ko neparašei. Ko nepasakei – jis spėja ir parašo vidutiniškai, „visiems“.",
     source: "Anthropic gairės" },
+  { id: "svarbu", name: "Dėk tik tai, kas svarbu", verdict: "works", stars: "★★",
+    how: "Pridėk vieną ar du faktus, kurie tikrai keičia skelbimą, o ne viską, ką žinai apie renginį.",
+    example: "Svarbu: bus ne tik romanai, bet ir komiksai bei knygos apie kompiuterinius žaidimus.",
+    watch: "Ar DI panaudojo tavo faktą? Ar skelbimas netapo ilgesnis ir painesnis?",
+    why: "18 modelių atsakė geriau su trumpu tiksliu kontekstu nei su visu ilgu pokalbiu. Svarbu ne kiek parašai, o ar tai reikalinga.",
+    source: "Chroma, 2025" },
+  { id: "virsuje", name: "Ilgą tekstą dėk viršuje, užduotį – pabaigoje", verdict: "works", stars: "★★", before: true,
+    how: "Pirma įklijuok papildomą tekstą (bibliotekos žinutę), o prašymą parašyti skelbimą palik pabaigoje.",
+    example: LIBRARY + "\nRemdamasis šiuo tekstu, atlik užduotį:",
+    watch: "Ar DI pasinaudojo žinutės faktais (komiksai, viktorina, skirtukas)? Ar jų neiškraipė?",
+    why: "DI kūrėjų testuose klausimas pabaigoje, po ilgo teksto, pagerino atsakymus iki 30 %.",
+    source: "Anthropic gairės; Liu ir kt., 2023" },
+  { id: "skaidyk", name: "Skaidyk užduotį", verdict: "works", stars: "★★",
+    how: "Paprašyk DI dirbti dalimis: pirma viena dalis, tada kita.",
+    example: "Pirma pasiūlyk 3 skirtingas antraštes. Tada pasirink geriausią ir su ja parašyk visą skelbimą.",
+    watch: "Ar galutinis skelbimas geresnis nei bazinis? Ar antraštė stipresnė? Į atsakymą įklijuok tik galutinį skelbimą.",
+    why: "Sudėtingas užduotis DI sprendžia geriau, kai jos išskaidytos į žingsnius.",
+    source: "Zhou ir kt., 2023" },
   { id: "formatas", name: "Nurodyk formatą", verdict: "works", stars: "★★",
     how: "Pasakyk, kokio ilgio, kokios struktūros ir kokio tono turi būti tekstas.",
     example: "Iki 60 žodžių: antraštė ir 3 trumpi sakiniai, draugiškas tonas.",
@@ -237,23 +270,128 @@ const TECHS = [
     watch: "Ar galutinis tekstas tikrai atitinka visus 3 kriterijus? Patikrink pats – DI kartais sako, kad pataisė, nors nepataisė.",
     why: "Rašymo užduotyse kritika pagal kriterijus pagerino rezultatą apie 20 %. Bet be aiškių kriterijų „sukritikuok save“ dažnai nieko neduoda.",
     source: "Madaan ir kt., 2023" },
-  { id: "daryk", name: "Sakyk, ką daryti, ne ko nedaryti", verdict: "works", stars: "★★",
-    how: "Vietoj draudimų („nerašyk ilgai“, „be nuobodžių frazių“) parašyk, ką DI turi daryti.",
-    example: "Rašyk trumpais sakiniais, kreipkis į skaitytoją „tu“ ir pradėk nuo to, ką jis gaus.",
-    watch: "Ar DI padarė tai, ko prašei? Palygink su bazine versija: ar sakiniai trumpesni, ar tekstas kreipiasi į tave?",
-    why: "DI kūrėjų patarimas, patikrintas jų testais: draudimas pasako, ko nenori, bet ne ką nori. Aiškus nurodymas – lengviau įvykdomas.",
-    source: "Anthropic gairės" },
+  { id: "tvarka", name: "Lygindamas variantus, sukeisk jų tvarką", verdict: "works", stars: "★★",
+    how: "Paprašyk dviejų variantų. Tada naujame pokalbyje paklausk, kuris geresnis – „A ar B?“, o dar kitame – „B ar A?“. Į atsakymą įklijuok laimėtoją.",
+    example: "Parašyk du skirtingus skelbimo variantus: A ir B.",
+    watch: "Ar abu kartus DI pasirinko tą patį variantą? Jei ne – jis renkasi pagal tvarką, o ne pagal kokybę.",
+    why: "Lygindamas DI dažnai renkasi tą variantą, kuris pirmas, ilgesnis ar panašesnis į jo paties tekstą. Sukeista tvarka tai atskleidžia.",
+    source: "Zheng ir kt., 2023" },
   { id: "tankink", name: "Tankink, ne trumpink", verdict: "works", stars: "★★",
     how: "Paprašyk, kad kiekvienas sakinys pasakytų ką nors naujo ir konkretaus.",
     example: "Kiekvienas sakinys turi pasakyti ką nors naujo ir konkretaus – be bendrų frazių apie knygų naudą.",
     watch: "Rask atsakyme „vandenį“ – sakinius, kurie nieko nepasako. Ar jų sumažėjo palyginti su bazine versija?",
     why: "Žmonės tankesnius tekstus – tokio pat ilgio, bet su daugiau svarbių faktų – vertino geriau.",
     source: "Adams ir kt., 2023" },
-  { id: "pinigai", name: "Pažadėk atlygį", verdict: "myth",
+  { id: "daryk", name: "Sakyk, ką daryti, ne ko nedaryti", verdict: "works", stars: "★★",
+    how: "Vietoj draudimų („nerašyk ilgai“, „be nuobodžių frazių“) parašyk, ką DI turi daryti.",
+    example: "Rašyk trumpais sakiniais, kreipkis į skaitytoją „tu“ ir pradėk nuo to, ką jis gaus.",
+    watch: "Ar DI padarė tai, ko prašei? Palygink su bazine versija: ar sakiniai trumpesni, ar tekstas kreipiasi į tave?",
+    why: "DI kūrėjų patarimas, patikrintas jų testais: draudimas pasako, ko nenori, bet ne ką nori. Aiškus nurodymas – lengviau įvykdomas.",
+    source: "Anthropic gairės" },
+  { id: "klausti", name: "Leisk DI paklausti pirmam", verdict: "works", stars: "★",
+    how: "Paprašyk, kad DI prieš rašydamas užduotų tau klausimų. Atsakyk į juos tame pačiame pokalbyje, o į atsakymą įklijuok galutinį skelbimą.",
+    example: "Prieš rašydamas užduok man 3 klausimus apie renginį ir skaitytojus. Rašyk tik tada, kai atsakysiu.",
+    watch: "Kokių klausimų DI paklausė? Ar tavo atsakymai pateko į skelbimą? Ar jis tapo konkretesnis?",
+    why: "Kai DI gauna trūkstamą informaciją, jam nereikia spėti. Logiška ir dažnai naudojama, bet tyrimų dar nėra.",
+    source: "Gerųjų praktikų rinkinys" },
+  { id: "modelis", name: "Rinkis samprotaujantį modelį", verdict: "works", stars: "★",
+    how: "Užklausos nekeisk – tik įjunk DI įrankyje modelį, kuris „galvoja“ (pvz., mąstymo ar „thinking“ režimą). Jei tokio nėra, pasirink kitą techniką.",
+    example: "",
+    watch: "Ar „galvojantis“ modelis parašė geriau, ar tik ilgiau užtruko? Ar matai jo samprotavimą?",
+    why: "Toks modelis pats galvoja žingsniais, todėl papildomos frazės nebereikalingos. Sudėtingoms užduotims padeda labiau nei paprastoms.",
+    source: "Meincke ir kt., 2025" },
+  { id: "vaizdas", name: "Parodyk vaizdą vietoj ilgo aprašymo", verdict: "works", stars: "★",
+    how: "Nufotografuok mokykloje plakatą, kurio stilius tau patinka (arba rask jo nuotrauką), ir įkelk kartu su užklausa.",
+    example: "Rašyk tokiu stiliumi kaip šiame plakate (nuotrauka pridėta).",
+    watch: "Ar DI perėmė plakato stilių – antraštę, ilgį, toną? Ar jam pavyko lengviau nei aprašant žodžiais?",
+    why: "Vaizdas pasako daugiau nei pastraipa. Logiška ir dažnai naudojama, bet tyrimų dar nėra.",
+    source: "Gerųjų praktikų rinkinys" },
+  // ----- Faktams -----
+  { id: "saltinis", name: "Duok šaltinį ir liepk remtis tik juo", verdict: "works", stars: "★★",
+    how: "Liepk naudoti tik tavo pateiktus faktus, o ko trūksta – pažymėti, o ne išgalvoti.",
+    example: "Naudok tik faktus iš mano užklausos. Jei ko trūksta, rašyk [TRŪKSTA].",
+    watch: "Palygink su bazine versija: ar ten DI prisigalvojo dalykų (prizų, muzikos, vaišių)? Ar dabar jų nebeliko?",
+    why: "Kai DI turi tekstą prieš akis ir jam leista juo remtis, jis mažiau prisigalvoja.",
+    source: "Lewis ir kt., 2020" },
+  { id: "patikra", name: "Prašyk patikros klausimų", verdict: "works", stars: "★★",
+    how: "Paprašyk DI sugalvoti klausimus, kuriais patikrintų savo tekstą, atsakyti į juos atskirai ir pataisyti.",
+    example: "Parašyk, tada surašyk 3 klausimus, kuriais patikrintum skelbimą (ar aišku kada, kur, ką atsinešti), atsakyk į juos atskirai ir pateik pataisytą skelbimą.",
+    watch: "Ar patikros klausimai rado ką nors trūkstamo ar klaidingo? Ar pataisytas variantas tikrai kitoks?",
+    why: "Atskirai atsakyti klausimai pagauna prisigalvotus ar trūkstamus faktus, kurių DI nepastebi rašydamas.",
+    source: "Dhuliawala ir kt., 2023" },
+  { id: "citatos", name: "Ilgam tekstui – pirma citatos, tada atsakymas", verdict: "works", stars: "★★", before: true,
+    how: "Įklijuok bibliotekos žinutę ir paprašyk, kad DI pirma išrašytų tinkamas citatas, tik tada rašytų.",
+    example: LIBRARY + "\nPirma išrašyk iš šios žinutės citatas, kurios tinka skelbimui. Tada atlik užduotį:",
+    watch: "Ar skelbime yra tik tie faktai, kurie buvo citatose? Ar DI nieko nepridėjo nuo savęs?",
+    why: "Citatos priverčia DI remtis tekstu, o ne savo atmintimi ar spėjimais.",
+    source: "Anthropic gairės" },
+  { id: "nezinau", name: "Leisk pasakyti „nežinau“", verdict: "works", stars: "★",
+    how: "Leisk DI pripažinti, kad jis ko nors nežino, užuot spėjus.",
+    example: "Jei ko nors nežinai (pvz., ar bus prizų), neprisigalvok – vietoj to parašyk man klausimą.",
+    watch: "Ar DI uždavė klausimų ar paliko tuščias vietas? Ar bazinėje versijoje jis tuos dalykus išgalvojo?",
+    why: "DI išmoko, kad spėti „apsimoka“ labiau nei sakyti „nežinau“. Leidimas abejoti tai šiek tiek atsveria.",
+    source: "Kalai ir kt., 2025" },
+  { id: "kitapuse", name: "Prašyk kitos pusės", verdict: "works", stars: "★",
+    how: "Paprašyk DI pirma pagalvoti, kas trukdytų skaitytojui, ir tik tada rašyti.",
+    example: "Pirma surašyk 3 stipriausias priežastis, kodėl neskaitantis mokinys NEateitų. Tada parašyk skelbimą, kuris į jas atsako.",
+    watch: "Ar priežastys tikroviškos? Ar skelbimas tikrai į jas atsako, ar tik jas išvardija?",
+    why: "Taip matai ne tik patvirtinimą, bet ir prieštaravimus. Logiška ir dažnai naudojama, bet tyrimų dar nėra.",
+    source: "Gerųjų praktikų rinkinys" },
+  // ----- Idėjoms -----
+  { id: "savo", name: "Pirma savo idėjos, tik tada DI", verdict: "works", stars: "★★★",
+    how: "Prieš rašydamas užklausą 2 minutes pats sugalvok, kaip pritraukti neskaitančius, ir įrašyk savo idėjas.",
+    example: "Mano idėjos: [įrašyk 2–3 savo idėjas]. Panaudok jas skelbime.",
+    watch: "Ar skelbime liko tavo idėjos, ar DI jas pakeitė savomis? Ar jis panašesnis į klasės draugų skelbimus, ar kitoks?",
+    why: "Su DI idėjomis kiekvienas tekstas tampa kūrybiškesnis, bet visi – panašesni vienas į kitą. Pirma pamatyta idėja „prilimpa“.",
+    source: "Doshi ir Hauser, 2024; Jansson ir Smith, 1991" },
+  { id: "kryptys", name: "Pirma kryptys, tada idėjos", verdict: "works", stars: "★★",
+    how: "Paprašyk kelių skirtingų krypčių, o tada – skelbimo pagal geriausią.",
+    example: "Pirma sugalvok 4 visiškai skirtingas skelbimo kryptis (pvz., humoras, iššūkis, paslaptis). Tada parašyk skelbimą pagal tą, kuri labiausiai patiktų neskaitantiems.",
+    watch: "Ar kryptys tikrai skirtingos? Ar galutinis skelbimas kitoks nei bazinis, ar vėl „vidutinis“?",
+    why: "Toks būdas davė įvairiausias idėjas ir priartėjo prie žmonių grupės idėjų įvairovės.",
+    source: "Meincke ir kt., 2024" },
+  { id: "daug", name: "Prašyk daug ir skirtingų", verdict: "works", stars: "★★",
+    how: "Paprašyk daug variantų, kiekvieno kita kryptimi, ir tik tada vieno galutinio.",
+    example: "Sugalvok 20 antraščių, kiekviena kita kryptimi, nekartok. Tada su geriausia parašyk skelbimą.",
+    watch: "Ar antraštės tikrai skirtingos, ar kartojasi? Ar galutinė antraštė geresnė nei bazinėje versijoje?",
+    why: "Paprastas prašymas duoda mažiau įvairių idėjų nei žmonių grupė. Prašant daug ir skirtingų, įvairovė didėja.",
+    source: "Meincke ir kt., 2024" },
+  { id: "premortem", name: "Pre-mortem: įsivaizduok, kad nepavyko", verdict: "works", stars: "★★",
+    how: "Paprašyk DI įsivaizduoti, kad renginys jau žlugo, rasti priežastis ir tik tada rašyti.",
+    example: "Įsivaizduok: knygų mainų dienoje nebuvo nė vieno neskaitančio mokinio. Kokios 5 priežastys? Tada parašyk skelbimą, kuris jų išvengtų.",
+    watch: "Ar priežastys tikroviškos? Ar skelbimas jas tikrai sprendžia?",
+    why: "Įsivaizduojant, kad kas nors jau įvyko, randama daugiau priežasčių nei klausiant „kas gali nepavykti?“.",
+    source: "Mitchell ir kt., 1989" },
+  { id: "atranka", name: "Kriterijai, tada atranka – renkiesi pats", verdict: "works", stars: "★",
+    how: "Paprašyk kelių variantų ir jų įvertinimo pagal tavo kriterijus. Galutinį pasirink pats ir įklijuok jį.",
+    example: "Parašyk 3 skirtingus skelbimus ir kiekvieną įvertink pagal: aiškumą, trumpumą ir ar norisi ateiti. Galutinį pasirinksiu pats.",
+    watch: "Ar sutinki su DI įvertinimu? Ar pasirinkai tą patį variantą, kurį DI įvertino geriausiai? Kodėl?",
+    why: "DI padeda palyginti, bet sprendimas ir atsakomybė – tavo. Logiška ir dažnai naudojama, bet tyrimų dar nėra.",
+    source: "Gerųjų praktikų rinkinys" },
+  { id: "apribojimai", name: "Apribojimai ir kraštutinumai", verdict: "works", stars: "★",
+    how: "Pridėk netikėtą apribojimą, kuris išstumia DI iš akivaizdžių sprendimų.",
+    example: "Antraštėje nevartok žodžio „knyga“. Visas skelbimas – iki 30 žodžių.",
+    watch: "Ar apribojimas privertė DI sugalvoti ką nors netikėto? Ar jis jo laikėsi?",
+    why: "Apribojimai išstumia iš akivaizdžių sprendimų. Logiška ir dažnai naudojama, bet tyrimų dar nėra.",
+    source: "Gerųjų praktikų rinkinys" },
+  { id: "perspektyvos", name: "Skirtingos perspektyvos", verdict: "works", stars: "★",
+    how: "Paprašyk pažiūrėti iš kelių skirtingų žmonių pusės, tada parašyti geriausią variantą.",
+    example: "Kaip šį skelbimą parašytų 12-metis, sporto treneris ir reperis? Tada iš jų geriausių minčių parašyk vieną skelbimą.",
+    watch: "Ar perspektyvos tikrai skiriasi? Ar galutinis skelbimas paėmė ką nors naujo?",
+    why: "Vaidmuo keičia požiūrį ir toną – tai naudinga idėjoms. Tikslumo jis neprideda.",
+    source: "Basil ir kt., 2025" },
+  { id: "apversk", name: "Apversk, sujunk, ieškok analogijų", verdict: "works", stars: "★",
+    how: "Paprašyk DI pažiūrėti iš kito kampo – pavyzdžiui, apversti užduotį.",
+    example: "Pirma sugalvok, kaip parašyti skelbimą, į kurį tikrai niekas neateitų. Tada parašyk priešingą.",
+    watch: "Ar „blogas“ skelbimas parodė, ko vengti? Ar galutinis tikrai to vengia?",
+    why: "Kitas kampas duoda kitokių idėjų. Logiška ir dažnai naudojama, bet tyrimų dar nėra.",
+    source: "Gerųjų praktikų rinkinys" },
+  // ----- Mitai -----
+  { id: "pinigai", name: "Pažadėk atlygį arba pagrasink", verdict: "myth",
     how: "Pridėk sakinį, kuriuo pažadi DI pinigų už gerą atsakymą.",
     example: "Jei parašysi gerai, gausi 1000 $ arbatpinigių.",
     watch: "Ar tekstas iš tikrųjų pagerėjo, ar tik šiek tiek kitoks? Nuo atsitiktinumo DI atsakymai keičiasi ir be jokios technikos.",
-    why: "5 modeliai, sunkūs klausimai, kiekvienas po 25 kartus: vidutiniškai jokio poveikio, kartais net blogiau. DI neturi kam išleisti pinigų.",
+    why: "5 modeliai, sunkūs klausimai, kiekvienas po 25 kartus: vidutiniškai jokio poveikio, kartais net blogiau. Grasinimai – taip pat.",
     source: "Wharton, 2025" },
   { id: "ekspertas", name: "Paskirk DI eksperto vaidmenį", verdict: "myth",
     how: "Užklausos pradžioje pasakyk DI, kad jis – ekspertas.",
@@ -267,24 +405,79 @@ const TECHS = [
     watch: "Ar skelbimas geresnis, ar tik atsakymas ilgesnis (su paaiškinimais, kurių stendui nereikia)?",
     why: "Naujiems modeliams, kurie patys „galvoja“, nauda beveik nulinė, o laukti tenka ilgiau. Paprastesniems kartais padeda, kartais sugadina.",
     source: "Wharton, 2025" },
+  { id: "prasau", name: "Būk labai mandagus arba labai griežtas", verdict: "myth",
+    how: "Pridėk labai mandagų prašymą (arba griežtą įsakymą).",
+    example: "Labai labai prašau, būk toks malonus ir pasistenk, nuoširdžiai ačiū!",
+    watch: "Ar kas nors pasikeitė, išskyrus tai, kad užklausa ilgesnė?",
+    why: "„Prašau“ ir „įsakau“ vidutiniškai veikia vienodai. Grubumas kartais kenkia, bet perdėtas mandagumas nepadeda. Būk normalus.",
+    source: "Wharton, 2025; Yin ir kt., 2024" },
   { id: "raides", name: "Rašyk DIDŽIOSIOMIS ir su šauktukais", verdict: "myth",
     how: "Pridėk šaukiantį reikalavimą didžiosiomis raidėmis.",
     example: "BŪTINAI!!! SKELBIMAS TURI BŪTI LABAI GERAS!!!",
     watch: "Ar tekstas nepasidarė perdėtas – per daug šauktukų, emocijų, „super“ žodžių?",
     why: "DI kūrėjai pataria to vengti: nauji modeliai klauso gerai, todėl šauksmas priverčia juos persistengti. Geriau paaiškink, kodėl tai svarbu.",
     source: "Anthropic gairės" },
-  { id: "prasau", name: "Būk labai mandagus", verdict: "myth",
-    how: "Pridėk labai mandagų prašymą.",
-    example: "Labai labai prašau, būk toks malonus ir pasistenk, nuoširdžiai ačiū!",
-    watch: "Ar kas nors pasikeitė, išskyrus tai, kad užklausa ilgesnė?",
-    why: "„Prašau“ ir „įsakau“ vidutiniškai veikia vienodai. Grubumas kartais kenkia, bet perdėtas mandagumas nepadeda. Būk normalus.",
-    source: "Wharton, 2025; Yin ir kt., 2024" },
+  { id: "ilgiau", name: "Kuo ilgesnė užklausa, tuo geriau", verdict: "myth",
+    how: "Pailgink užklausą: pridėk daug papildomo teksto apie renginį ir knygas, net jei jis nebūtinas.",
+    example: "Knygos yra labai svarbios, nes jos plečia akiratį, lavina vaizduotę ir žodyną. Skaitymas padeda mokytis, o mokykla nori, kad mokiniai skaitytų daugiau. Biblioteka yra antrame aukšte, joje daug lentynų, stalų ir patogių kėdžių. Renginį organizuoja bibliotekininkė kartu su mokinių taryba.",
+    watch: "Ar skelbimas pagerėjo, ar į jį pateko nereikalingų dalykų (lentynos, kėdės, „plečia akiratį“)?",
+    why: "18 modelių: ilgėjant tekstui, atsakymai blogėja net paprastose užduotyse. Svarbu ne ilgis, o ar informacija tikrai reikalinga.",
+    source: "Chroma, 2025" },
+  // ----- Neaišku -----
   { id: "karjera", name: "Pasakyk, kad tai labai svarbu", verdict: "unclear",
     how: "Pridėk sakinį apie tai, kaip tau svarbus rezultatas.",
     example: "Tai labai svarbu mano karjerai.",
     watch: "Ar tekstas tikrai geresnis? Atkreipk dėmesį: frazė nesako DI nieko apie tai, KOKIO teksto reikia.",
     why: "2023 m. senesniems modeliams tai padėjo, bet 2025 m. naujiems modeliams reikšmingo poveikio nebuvo. Neaišku – nelaikyk taisykle.",
-    source: "Li ir kt., 2023; Wharton, 2025" }
+    source: "Li ir kt., 2023; Wharton, 2025" },
+  { id: "savikritika", name: "„Sukritikuok save ir pataisyk“ be kriterijų", verdict: "unclear",
+    how: "Paprašyk DI sukritikuoti ir pataisyti savo tekstą, bet nesakyk, pagal ką.",
+    example: "Parašyk, tada sukritikuok save ir pataisyk. Pateik tik pataisytą variantą.",
+    watch: "Ar pataisytas variantas tikrai geresnis, ar tik kitoks? Ką DI laikė „klaida“?",
+    why: "Rašymo ir stiliaus užduotyse kartais padeda (~20 %), bet be kriterijų ar šaltinio logikoje ir faktuose nepadeda, kartais net pablogina.",
+    source: "Madaan ir kt., 2023; Huang ir kt., 2024" },
+  { id: "json", name: "Griežtas formatas (JSON, lentelė)", verdict: "unclear",
+    how: "Liepk atsakyti griežtu techniniu formatu, pavyzdžiui, lentele.",
+    example: "Atsakyk lentele su stulpeliais: Antraštė | Tekstas | Kvietimas veikti.",
+    watch: "Ar skelbimą galima iš karto kabinti ant stendo? Ar formatas netrukdė parašyti gyvo teksto?",
+    why: "Formato nurodymas padeda, bet labai griežtas formatas gali mažinti DI samprotavimą. Formatu tvarkyk galutinį atsakymą, ne mąstymą.",
+    source: "Wharton, 2025; Tam ir kt., 2024" },
+  { id: "angliskai", name: "„Galvok angliškai, atsakyk lietuviškai“", verdict: "unclear",
+    how: "Liepk DI galvoti angliškai, o atsakyti lietuviškai.",
+    example: "Galvok angliškai, bet atsakymą parašyk lietuviškai.",
+    watch: "Ar lietuvių kalba natūrali, ar jaučiasi vertimas („angliški“ posakiai, keista žodžių tvarka)?",
+    why: "Kai kuriose kalbos užduotyse padėjo, bet kultūrinėse geriau gimtoji kalba. Lietuviškam tekstui – greičiausiai ne.",
+    source: "Liu ir kt., 2025" },
+  { id: "principai", name: "„Pirma išvardink svarbiausius principus“", verdict: "unclear",
+    how: "Paprašyk DI pirma išvardinti gero skelbimo principus, tik tada rašyti.",
+    example: "Pirma išvardink svarbiausius gero skelbimo principus, tada pagal juos parašyk.",
+    watch: "Ar DI tikrai laikėsi savo išvardintų principų? Ar skelbimas geresnis nei bazinis?",
+    why: "Senesniems modeliams sveiko proto užduotyse padėjo, naujiems – nepatikrinta. Nekenkia, bet stebuklų nelauk.",
+    source: "Liu ir kt., 2022" },
+  { id: "vidurys", name: "Svarbiausia – ne viduryje", verdict: "unclear",
+    how: "Pasakyk DI, kad svarbiausi faktai nepasimestų – pakartok juos pačioje užklausos pabaigoje.",
+    example: "Svarbiausia, nepamiršk: lapkričio 27 d., 12:30, biblioteka, atsinešk vieną knygą.",
+    watch: "Ar bazinėje versijoje DI ką nors pametė? Ar pakartojimas ką nors pakeitė?",
+    why: "2023 m. modeliai informaciją viduryje naudojo prasčiau, bet 2025 m. modeliams fakto vieta reikšmingos įtakos neturėjo. Svarbiau trumpinti kontekstą.",
+    source: "Liu ir kt., 2023; Chroma, 2025" },
+  { id: "procentai", name: "„Kiek procentų esi tikras?“", verdict: "unclear",
+    how: "Paprašyk DI įvertinti, kiek procentų jis tikras, kad skelbimas veiks.",
+    example: "Pabaigoje parašyk, kiek procentų esi tikras, kad šis skelbimas pritrauks neskaitančius mokinius.",
+    watch: "Kiek procentų DI parašė? Ar tu tuo skaičiumi tiki? Ar jis kažką pasako apie skelbimo kokybę?",
+    why: "DI nurodytas skaičius dažnai per didelis. Patikimiau paklausti 3 kartus ir žiūrėti, ar atsakymai sutampa.",
+    source: "Xiong ir kt., 2024" },
+  { id: "scamper", name: "Kūrybiškumo metodai (SCAMPER, TRIZ)", verdict: "unclear",
+    how: "Paprašyk DI pritaikyti žinomą kūrybiškumo metodą.",
+    example: "Pritaikyk SCAMPER metodą skelbimo idėjai, tada parašyk geriausią variantą.",
+    watch: "Ar metodas davė ką nors nauja, ar DI tik išvardijo SCAMPER žingsnius?",
+    why: "Padeda pažiūrėti iš kito kampo, bet tyrimų, kurie juos lygintų su paprasta užklausa, nėra.",
+    source: "Mitų rinkinys" },
+  { id: "blogas", name: "Blogas pavyzdys („nenoriu taip“)", verdict: "unclear",
+    how: "Parodyk DI, kokio skelbimo NEnori.",
+    example: "Nenoriu tokio skelbimo: „Kviečiame visus mokinius į knygų mainų dieną. Skaitymas yra svarbus. Laukiame visų.“",
+    watch: "Ar DI išvengė blogo pavyzdžio, ar netyčia jį pakartojo (tie patys žodžiai, struktūra)?",
+    why: "Kartais greitai parodo, ko nenori, bet tyrimų nėra. DI kūrėjai pataria sakyti, ką daryti, o blogą pavyzdį visada lydėti geru.",
+    source: "Anthropic gairės" }
 ];
 const VERDICT = { works: ["Veikia", "v-works"], myth: ["Mitas", "v-myth"], unclear: ["Neaišku", "v-unclear"] };
 const KEY = "jkm-02-ab-eksperimentas";
@@ -300,12 +493,11 @@ function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-// 3 atsitiktinės technikos: bent viena veikianti ir bent viena neveikianti
+// 3 atsitiktinės technikos: 2 veikiančios ir 1 mitas arba neaiškus patarimas, sumaišyta tvarka
 function drawTechs() {
-  for (;;) {
-    const pick = shuffle(TECHS).slice(0, 3);
-    if (pick.some(t => t.verdict === "works") && pick.some(t => t.verdict !== "works")) return pick.map(t => t.id);
-  }
+  const good = shuffle(TECHS.filter(t => t.verdict === "works")).slice(0, 2);
+  const bad = shuffle(TECHS.filter(t => t.verdict !== "works")).slice(0, 1);
+  return shuffle([...good, ...bad]).map(t => t.id);
 }
 
 // ---------- Būsena ----------
@@ -344,7 +536,7 @@ function renderTechs() {
       <h3>${esc(t.name)}</h3>
       <dl>
         <dt>Kaip naudoti</dt><dd>${esc(t.how)}</dd>
-        <dt>Pavyzdys</dt><dd class="example">${esc(t.example)}</dd>
+        ${t.example ? `<dt>Pavyzdys</dt><dd class="example">${esc(t.example)}</dd>` : ""}
         <dt>Į ką atkreipti dėmesį</dt><dd>${esc(t.watch)}</dd>
       </dl>
       <details>
@@ -373,7 +565,7 @@ function renderEditor() {
   const d = S.variants[v.id] || {};
   $("prompt").value = d.prompt ?? BASE;
   $("result").value = d.result || "";
-  $("insertExample").hidden = !v.techs.length;
+  $("insertExample").hidden = !v.techs.some(t => tech(t).example);
   renderEditorState();
 }
 
@@ -421,7 +613,7 @@ function renderReveal() {
       return `<tr class="${S.ratings[id] === top ? "best" : ""}"><td>${i + 1}</td><td>${esc(v.label)}</td>
         <td class="num">${S.ratings[id] ?? "–"}</td><td class="num">${words(S.saved[id].result)}</td><td>${verdicts}</td></tr>`;
     }).join("");
-  ["q1", "q2", "q3"].forEach(q => { $(q).value = S.notes[q] || ""; });
+  ["q1", "q3"].forEach(q => { $(q).value = S.notes[q] || ""; });
 }
 
 function renderAll() { renderTechs(); renderTabs(); renderEditor(); renderBlind(); renderReveal(); }
@@ -434,9 +626,11 @@ function renderAll() { renderTechs(); renderTabs(); renderEditor(); renderBlind(
 
 $("insertExample").addEventListener("click", () => {
   const v = variant();
-  const add = v.techs.map(t => tech(t).example).filter(ex => !$("prompt").value.includes(ex));
-  if (!add.length) return;
-  $("prompt").value = $("prompt").value.trimEnd() + "\n" + add.join("\n");
+  const missing = v.techs.map(tech).filter(t => t.example && !$("prompt").value.includes(t.example));
+  if (!missing.length) return;
+  const before = missing.filter(t => t.before).map(t => t.example);
+  const after = missing.filter(t => !t.before).map(t => t.example);
+  $("prompt").value = [...before, $("prompt").value.trim(), ...after].join("\n");
   $("prompt").dispatchEvent(new Event("input"));
 });
 
@@ -458,7 +652,7 @@ $("revealBtn").addEventListener("click", () => {
   $("reveal").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-["q1", "q2", "q3"].forEach(q => $(q).addEventListener("input", () => { S.notes[q] = $(q).value; save(); }));
+["q1", "q3"].forEach(q => $(q).addEventListener("input", () => { S.notes[q] = $(q).value; save(); }));
 
 $("copyBase").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(BASE); $("copyMsg").textContent = "Nukopijuota!"; }
