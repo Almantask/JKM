@@ -94,7 +94,7 @@
   .board::before, .board::after { content: ""; position: absolute; background: var(--line); }
   .board::before { left: 50%; top: 0; bottom: 0; width: 1px; }
   .board::after { top: 50%; left: 0; right: 0; height: 1px; }
-  .board .card { position: absolute; width: min(190px, 34%); transform: translate(-50%, -50%); z-index: 2; }
+  .board .card { position: absolute; width: min(160px, 30%); font-size: 13px; transform: translate(-50%, -50%); z-index: 2; }
   .quad {
     position: absolute; width: 50%; height: 50%; padding: 12px; opacity: 0; transition: opacity .4s;
     pointer-events: none; display: flex; flex-direction: column;
@@ -138,22 +138,22 @@
 <body>
 <main>
   <header>
-    <div class="tag">2 tema · I dalis · Poroje · 5 min</div>
+    <div class="tag">2 tema · I dalis · Poroje · 10 min</div>
     <h1>Rezultatas ar augimas?</h1>
     <p class="lead">Kiekviena užduotis duoda du dalykus: <b>rezultatą</b> ir tai, ką po jos <b>moki geriau</b>. Su draugu nuspręskite, kur atsiduria kiekviena situacija.</p>
   </header>
 
   <ol class="steps">
-    <li><b>1</b>Išdėliokite 10 kortelių ant lentos</li>
+    <li><b>1</b>Išdėliokite 20 kortelių ant lentos</li>
     <li><b>2</b>Dešinėn – rezultatas, aukštyn – augimas</li>
     <li><b>3</b>Pažymėkite ⚑ korteles, dėl kurių nesutarėte</li>
   </ol>
 
   <div class="toolbar">
-    <button id="startTimer" type="button">▶ Pradėti 5 min</button>
+    <button id="startTimer" type="button">▶ Pradėti 10 min</button>
     <button id="reveal" class="primary" type="button" disabled>Rodyti kampus</button>
     <button id="reset" type="button">Iš naujo</button>
-    <span class="timer" id="timer">5:00</span>
+    <span class="timer" id="timer">10:00</span>
   </div>
 
   <div class="layout">
@@ -180,7 +180,7 @@
     <div id="flagBlock">
       <b>Dėl šių kortelių nesutarėte:</b>
       <ul id="flagList"></ul>
-      <p class="hint">Kiekvienam: kas pakeistų situaciją taip, kad ji pakiltų aukštyn – į augimą?</p>
+      <p class="hint">Kiekvienai: kokio fakto trūksta, kad sutartumėte? Kas pakeistų situaciją taip, kad ji pakiltų aukštyn – į augimą?</p>
     </div>
     <p id="noFlags" hidden>Sutarėte dėl visų kortelių! Kuri buvo sunkiausia nuspręsti ir kodėl?</p>
   </section>
@@ -193,17 +193,28 @@
 </main>
 
 <script>
+// Kortelės sąmoningai dviprasmiškos – vietą lemia tai, iš kurios pusės pažiūrėsi
 const CARDS = [
-  "Parašiau rašinį pats, DI pakritikavo, pataisiau pats",
-  "Paprašiau DI parašyti visą rašinį ir jį pateikiau",
-  "Nusirašiau namų darbus nuo draugo",
-  "Uždavinio neišsprendžiau, bet supratau, kur klydau",
-  "Tėvai padarė projektą už mane",
-  "Atidėliojau iki paskutinės minutės ir padariau atmestinai",
-  "Kaliau visą naktį – gavau 9, po savaitės nieko neprisimenu",
-  "DI paaiškino temą paprastai, užduotis išsprendžiau pats",
-  "Repetavau pristatymą su draugu ir pataisiau pagal jo pastabas",
-  "Pradėjau, bet pasidaviau ir nieko nepateikiau"
+  "DI sugalvojo rašinio planą, o tekstą parašiau pats",
+  "DI ištaisė visas klaidas mano rašinyje – aš tik paspaudžiau „Priimti“",
+  "Draugas parodė sprendimą, aš jį perrašiau savais žodžiais",
+  "Dvi valandas sprendžiau uždavinį, kol atsakymą radau internete",
+  "Tėtis neatsakinėjo, tik klausinėjo, kol pats sugalvojau projekto idėją",
+  "Užduotis buvo lengva – padariau per 5 minutes be klaidų",
+  "Kaliau visą naktį: gavau 9, po savaitės prisimenu pusę",
+  "Išsprendžiau pats, bet kiekvieną atsakymą tikrinau su DI",
+  "Grupės darbe padariau tik skaidres, turinį parašė kiti",
+  "Parašiau pusę, nepatiko – ištryniau ir nieko nepateikiau",
+  "Nukopijavau DI atsakymą, bet perskaičiau ir supratau kiekvieną sakinį",
+  "Gavau 4, nes rašiau savo idėją, o ne tai, ko prašė mokytoja",
+  "Išmokau eilėraštį mintinai, bet nelabai žinau, apie ką jis",
+  "Pažiūrėjau tris vaizdo įrašus apie temą, užduoties dar nepradėjau",
+  "DI sugalvojo 10 klausimų, jais pasitikrinau prieš kontrolinį",
+  "Dešimtą kartą sprendžiau tokio pat tipo uždavinius – visi teisingi",
+  "DI pasakė, kad rašinys puikus, todėl nieko netaisiau",
+  "Nusirašiau, bet vakare pabandžiau tą patį išspręsti pats",
+  "Padėjau draugui suprasti temą, o savo užduoties nespėjau",
+  "Padariau viską pats, bet tik todėl, kad tą dieną DI neveikė"
 ];
 const KEY = "jkm-02-rezultatas-augimas";
 const tray = document.getElementById("tray");
@@ -257,7 +268,7 @@ function render() {
   const placed = state.filter(s => s.x !== null).length;
   document.getElementById("trayEmpty").hidden = placed < CARDS.length;
   revealBtn.disabled = placed < CARDS.length;
-  revealBtn.textContent = placed < CARDS.length ? `Rodyti kampus (${placed}/10)` : "Rodyti kampus";
+  revealBtn.textContent = placed < CARDS.length ? `Rodyti kampus (${placed}/${CARDS.length})` : "Rodyti kampus";
   board.classList.toggle("revealed", revealed);
   if (revealed) renderSummary();
 }
@@ -335,18 +346,18 @@ document.getElementById("reset").addEventListener("click", () => {
 });
 answer.addEventListener("input", save);
 
-// 5 min laikmatis
+// 10 min laikmatis
 let timerId = null;
 const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startTimer");
 function stopTimer() {
   clearInterval(timerId); timerId = null;
-  timerEl.textContent = "5:00"; timerEl.classList.remove("over");
-  startBtn.textContent = "▶ Pradėti 5 min";
+  timerEl.textContent = "10:00"; timerEl.classList.remove("over");
+  startBtn.textContent = "▶ Pradėti 10 min";
 }
 startBtn.addEventListener("click", () => {
   if (timerId) return stopTimer();
-  const end = Date.now() + 5 * 60 * 1000;
+  const end = Date.now() + 10 * 60 * 1000;
   startBtn.textContent = "■ Sustabdyti";
   const tick = () => {
     const left = Math.round((end - Date.now()) / 1000);
