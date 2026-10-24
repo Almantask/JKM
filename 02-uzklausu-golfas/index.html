@@ -117,6 +117,7 @@
   .row input[type="text"] { flex: 1 1 220px; }
   .row input[type="number"] { width: 6em; }
 </style>
+<script src="../shared/nav.js" data-key="jkm-02-uzklausu-golfas" defer></script>
 </head>
 <body>
 <main>
@@ -154,11 +155,10 @@
     </section>
 
     <section class="panel">
-      <h2>Tavo smūgis</h2>
+      <h2>Tavo smūgis Nr. <span class="strokes" id="attemptNo">1</span></h2>
       <label for="prompt"><b>Užklausa</b></label>
       <textarea id="prompt" placeholder="Kuo trumpiau…"></textarea>
       <div class="counter">
-        <span>Smūgiai: <span class="strokes" id="strokeCount">0</span></span>
         <span>Simboliai: <b id="charCount">0</b></span>
         <span class="hint" id="parDiff"></span>
       </div>
@@ -367,7 +367,7 @@ function renderHole() {
 function renderCounter() {
   const h = hole();
   const n = words($("prompt").value).length;
-  $("strokeCount").textContent = n;
+  $("attemptNo").textContent = (S.attempts[h.id] || []).length + 1;
   $("charCount").textContent = $("prompt").value.trim().length;
   const diff = n - h.par;
   $("parDiff").textContent = n ? (diff === 0 ? "lygiai par" : diff < 0 ? `${-diff} mažiau nei par` : `${diff} daugiau nei par`) : "";

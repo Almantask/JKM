@@ -143,9 +143,10 @@ document.getElementById("importFile").addEventListener("change", async e => {
   }
   const entries = Object.entries(file.data).filter(([k, v]) => k.startsWith(PREFIX) && typeof v === "string");
   if (!entries.length) { msg.textContent = "Faile nėra progreso."; return; }
-  if (savedKeys().length && !confirm("Įkėlus failą, dabartinis progresas šioje naršyklėje bus pakeistas. Tęsti?")) return;
+  // Failas gali būti vienos užduoties – kitų užduočių progresas lieka
+  const overlap = entries.filter(([k]) => savedKeys().includes(k)).length;
+  if (overlap && !confirm(`Įkėlus failą, ${overlap} užduoč. progresas šioje naršyklėje bus pakeistas. Tęsti?`)) return;
   try {
-    savedKeys().forEach(k => localStorage.removeItem(k));
     entries.forEach(([k, v]) => localStorage.setItem(k, v));
   } catch (err) { msg.textContent = "Nepavyko įrašyti – gal naršyklėje išjungta saugykla?"; return; }
   msg.textContent = `Įkelta užduočių: ${entries.length}.`;
