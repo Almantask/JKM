@@ -132,7 +132,7 @@
 <body>
 <main>
   <header>
-    <div class="tag">2 tema · I dalis · Žaidimas · 3 min</div>
+    <div class="tag">2 tema · I dalis · Žaidimas · 5 min</div>
     <h1>Atspėk užklausą</h1>
     <p class="lead">Sporto klubas <b>NeonZ</b> paprašė DI parašyti kvietimą. Vieną kvietimą DI parašė iš <b>trumpos</b> užklausos, kitą – iš <b>išsamios</b>. Kuris kuris?</p>
   </header>
@@ -144,9 +144,9 @@
   </ol>
 
   <div class="toolbar">
-    <button id="startTimer" type="button">▶ Pradėti 3 min</button>
+    <button id="startTimer" type="button">▶ Pradėti 5 min</button>
     <button id="reset" type="button">Iš naujo</button>
-    <span class="timer" id="timer">3:00</span>
+    <span class="timer" id="timer">5:00</span>
   </div>
 
   <div class="pair" id="pair">
@@ -306,18 +306,18 @@ document.getElementById("reset").addEventListener("click", () => {
   checked = false; stopTimer(); render(); save();
 });
 
-// 3 min laikmatis
+// 5 min laikmatis
 let timerId = null;
 const timerEl = document.getElementById("timer");
 const startBtn = document.getElementById("startTimer");
 function stopTimer() {
   clearInterval(timerId); timerId = null;
-  timerEl.textContent = "3:00"; timerEl.classList.remove("over");
-  startBtn.textContent = "▶ Pradėti 3 min";
+  timerEl.textContent = "5:00"; timerEl.classList.remove("over");
+  startBtn.textContent = "▶ Pradėti 5 min";
 }
 startBtn.addEventListener("click", () => {
   if (timerId) return stopTimer();
-  const end = Date.now() + 3 * 60 * 1000;
+  const end = Date.now() + 5 * 60 * 1000;
   startBtn.textContent = "■ Sustabdyti";
   const tick = () => {
     const left = Math.round((end - Date.now()) / 1000);
