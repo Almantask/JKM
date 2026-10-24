@@ -220,8 +220,9 @@ const answer = document.getElementById("answer");
 const notes = document.getElementById("notes");
 
 // state[i] = { x, y, flag } with x,y in 0..1 (null when in tray)
-let state = load() || CARDS.map(() => ({ x: null, y: null, flag: false }));
-let revealed = false;
+const saved = load();
+let state = saved ? saved.cards : CARDS.map(() => ({ x: null, y: null, flag: false }));
+let revealed = !!(saved && saved.revealed);
 
 function load() {
   try {
@@ -229,13 +230,16 @@ function load() {
     if (s && Array.isArray(s.cards) && s.cards.length === CARDS.length) {
       answer.value = s.answer || "";
       notes.value = s.notes || "";
-      return s.cards;
+      return s;
     }
   } catch (e) {}
   return null;
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ cards: state, answer: answer.value, notes: notes.value })); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ cards: state, answer: answer.value, notes: notes.value, revealed })); } catch (e) {}
+}
+function clearSaved() {
+  try { localStorage.removeItem(KEY); } catch (e) {}
 }
 
 const els = CARDS.map((text, i) => {
@@ -332,7 +336,7 @@ function startDrag(e, i) {
 }
 
 revealBtn.addEventListener("click", () => {
-  revealed = true; render();
+  revealed = true; render(); save();
   document.getElementById("summary").scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
 document.getElementById("reset").addEventListener("click", () => {
@@ -340,7 +344,7 @@ document.getElementById("reset").addEventListener("click", () => {
   state = CARDS.map(() => ({ x: null, y: null, flag: false }));
   revealed = false; answer.value = ""; notes.value = "";
   document.getElementById("summary").hidden = true;
-  stopTimer(); render(); save();
+  stopTimer(); clearSaved(); render();
 });
 answer.addEventListener("input", save);
 notes.addEventListener("input", save);

@@ -412,7 +412,7 @@ const CAT_LABEL = { works: "Veikia", unclear: "Neaišku", myth: "Neveikia" };
 const PHASE_MIN = [2, 5, 5, 3];
 const KEY = "jkm-02-uzklausu-aukcionas-v2";
 
-const fresh = () => ({ phase: 0, parts: [], techs: [], fields: {}, revealed: false, reflection: "" });
+const fresh = () => ({ phase: 0, problems: false, parts: [], techs: [], fields: {}, revealed: false, reflection: "" });
 let S = load() || fresh();
 
 function load() {
@@ -470,7 +470,7 @@ $("dataSheet").textContent = DATA;
 $("badChat").innerHTML = CHAT.map(([who, text]) =>
   who === "skip" ? `<div class="msg skip">${esc(text)}</div>`
   : `<div class="msg ${who}"><b>${who === "me" ? "Mokinys" : "DI"}</b>${esc(text)}</div>`).join("");
-$("showProblems").addEventListener("click", () => { $("problems").hidden = false; $("showProblems").hidden = true; });
+$("showProblems").addEventListener("click", () => { S.problems = true; renderAll(); save(); });
 
 async function copyFrom(id, msgEl) {
   const el = $(id);
@@ -602,13 +602,16 @@ function renderAll() {
     if (+b.dataset.phase === S.phase) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
   });
   if (!timerId) { timerEl.textContent = PHASE_MIN[S.phase] + ":00"; startBtn.textContent = `▶ Pradėti ${PHASE_MIN[S.phase]} min`; }
+  $("problems").hidden = !S.problems;
+  $("showProblems").hidden = !!S.problems;
   renderShop(); renderFields(); renderReveal();
   $("reflection").value = S.reflection || "";
 }
 
 $("reset").addEventListener("click", () => {
   if (!confirm("Pradėti iš naujo? Visi pirkiniai ir tekstai bus ištrinti.")) return;
-  S = fresh(); stopTimer(); renderAll(); save();
+  S = fresh(); stopTimer(); renderAll();
+  try { localStorage.removeItem(KEY); } catch (e) {}
 });
 
 let timerId = null;

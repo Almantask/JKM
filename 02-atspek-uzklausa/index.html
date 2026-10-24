@@ -303,7 +303,8 @@ document.getElementById("reset").addEventListener("click", () => {
   if (!confirm("Pradėti iš naujo? Atsakymai bus ištrinti.")) return;
   radios.forEach(r => { r.checked = false; });
   sign1.value = sign2.value = discuss.value = "";
-  checked = false; stopTimer(); render(); save();
+  checked = false; stopTimer(); render();
+  try { localStorage.removeItem(KEY); } catch (e) {}
 });
 
 // 5 min laikmatis

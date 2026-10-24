@@ -23,6 +23,21 @@
   a:hover { border-color: var(--accent); }
   a small { display: block; color: var(--muted); font-size: 14px; }
   a b { color: var(--accent); }
+  a .started { float: right; margin-left: 8px; font-size: 13px; font-weight: 600; color: #1f9d6b; }
+  .progress {
+    margin-top: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+  }
+  .progress h2 { margin: 0 0 6px; font-size: 18px; }
+  .progress p { margin: 0 0 12px; font-size: 14px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button, .file-btn {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); padding: 8px 14px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #msg { margin: 10px 0 0; font-size: 14px; color: var(--ink); }
 </style>
 </head>
 <body>
@@ -31,30 +46,107 @@
   <p>Interaktyvios pamokų užduotys</p>
   <ul>
     <li>
-      <a href="02-rezultatas-ar-augimas/">
+      <a href="02-rezultatas-ar-augimas/" data-key="jkm-02-rezultatas-augimas">
         <small>2 tema · Poroje · 5 min</small>
         <b>Rezultatas ar augimas?</b> – išdėliokite 10 kortelių: dešinėn rezultatas, aukštyn augimas
       </a>
     </li>
     <li>
-      <a href="02-atspek-uzklausa/">
+      <a href="02-atspek-uzklausa/" data-key="jkm-02-atspek-uzklausa">
         <small>2 tema · Žaidimas · 5 min</small>
         <b>Atspėk užklausą</b> – kuris NeonZ kvietimas gautas iš trumpos užklausos?
       </a>
     </li>
     <li>
-      <a href="02-uzklausu-aukcionas/">
+      <a href="02-uzklausu-aukcionas/" data-key="jkm-02-uzklausu-aukcionas-v2">
         <small>2 tema · Individualiai · 15 min</small>
         <b>Užklausų aukcionas</b> – už 100 taškų pirk užklausos dalis ir technikas, klasė balsuoja už geriausią rezultatą
       </a>
     </li>
     <li>
-      <a href="02-uzklausu-golfas/">
+      <a href="02-uzklausu-golfas/" data-key="jkm-02-uzklausu-golfas">
         <small>2 tema · Individualiai · 15 min</small>
         <b>Užklausų golfas</b> – atkurk mokytojo tekstą kuo trumpesne užklausa
       </a>
     </li>
   </ul>
+
+  <section class="progress">
+    <h2>Mano progresas</h2>
+    <p>Progresas saugomas šioje naršyklėje. Išsaugok jį į failą, jei nori tęsti kitame kompiuteryje ar vėliau.</p>
+    <div class="buttons">
+      <button type="button" class="primary" id="exportBtn">Išsaugoti į failą</button>
+      <label class="file-btn">Įkelti iš failo<input type="file" id="importFile" accept=".json,application/json"></label>
+    </div>
+    <p id="msg" role="status"></p>
+  </section>
 </main>
+
+<script>
+// Visos užduotys saugo progresą localStorage raktuose, prasidedančiuose „jkm-“
+const PREFIX = "jkm-";
+const msg = document.getElementById("msg");
+
+function savedKeys() {
+  const keys = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(PREFIX)) keys.push(k);
+    }
+  } catch (e) {}
+  return keys;
+}
+
+function markStarted() {
+  const keys = savedKeys();
+  document.querySelectorAll("a[data-key]").forEach(a => {
+    a.querySelector(".started")?.remove();
+    if (keys.includes(a.dataset.key)) {
+      const s = document.createElement("span");
+      s.className = "started"; s.textContent = "✓ pradėta";
+      a.prepend(s);
+    }
+  });
+}
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const keys = savedKeys();
+  if (!keys.length) { msg.textContent = "Kol kas nėra ko išsaugoti – pradėk kurią nors užduotį."; return; }
+  const data = {};
+  try { keys.forEach(k => { data[k] = localStorage.getItem(k); }); }
+  catch (e) { msg.textContent = "Nepavyko perskaityti progreso šioje naršyklėje."; return; }
+  const file = { app: "jkm-uzduotys", version: 1, saved: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `jkm-progresas-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  msg.textContent = `Išsaugota užduočių: ${keys.length}. Failą rasi atsisiuntimų aplanke.`;
+});
+
+document.getElementById("importFile").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  let file;
+  try { file = JSON.parse(await f.text()); } catch (err) { file = null; }
+  if (!file || file.app !== "jkm-uzduotys" || !file.data || typeof file.data !== "object") {
+    msg.textContent = "Tai ne JKM progreso failas."; return;
+  }
+  const entries = Object.entries(file.data).filter(([k, v]) => k.startsWith(PREFIX) && typeof v === "string");
+  if (!entries.length) { msg.textContent = "Faile nėra progreso."; return; }
+  if (savedKeys().length && !confirm("Įkėlus failą, dabartinis progresas šioje naršyklėje bus pakeistas. Tęsti?")) return;
+  try {
+    savedKeys().forEach(k => localStorage.removeItem(k));
+    entries.forEach(([k, v]) => localStorage.setItem(k, v));
+  } catch (err) { msg.textContent = "Nepavyko įrašyti – gal naršyklėje išjungta saugykla?"; return; }
+  msg.textContent = `Įkelta užduočių: ${entries.length}.`;
+  markStarted();
+});
+
+markStarted();
+</script>
 </body>
 </html>

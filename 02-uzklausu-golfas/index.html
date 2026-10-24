@@ -298,12 +298,15 @@ function encodeCustom(c) {
 
 const fresh = () => ({ hole: "h1", custom: null, drafts: {}, attempts: {} });
 let S = load() || fresh();
-const fromLink = decodeCustom();
-if (fromLink) {
+// Mokytojo duobutė iš nuorodos lieka ir po „Iš naujo“
+function applyLink() {
+  const fromLink = decodeCustom();
+  if (!fromLink) return;
   const changed = !S.custom || S.custom.text !== fromLink.text;
   S.custom = { text: fromLink.text, par: +fromLink.par || 10, goal: +fromLink.goal || 60 };
   if (changed) { delete S.attempts.custom; delete S.drafts.custom; S.hole = "custom"; }
 }
+applyLink();
 
 function load() {
   try {
@@ -343,7 +346,7 @@ function renderTabs() {
       ${h.id === hole().id ? 'aria-current="step"' : ""}>${esc(h.title.split(" · ")[0])}</button></li>`;
   }).join("");
   $("holeTabs").querySelectorAll("[data-hole]").forEach(b => b.addEventListener("click", () => {
-    S.hole = b.dataset.hole; $("feedback").hidden = true; stopTimer(); renderAll(); save();
+    S.hole = b.dataset.hole; stopTimer(); renderAll(); save();
   }));
 }
 
@@ -416,7 +419,13 @@ function showFeedback(a) {
   $("cmpResult").innerHTML = highlight(a.result, h.text, "").replace(/\n/g, "<br>");
 }
 
-function renderAll() { renderTabs(); renderHole(); renderAttempts(); renderScorecard(); }
+// Po perkrovimo ar perėjus į kitą duobutę rodomas paskutinio bandymo palyginimas
+function renderLastFeedback() {
+  const list = S.attempts[hole().id] || [];
+  if (list.length) showFeedback(list[list.length - 1]); else $("feedback").hidden = true;
+}
+
+function renderAll() { renderTabs(); renderHole(); renderAttempts(); renderScorecard(); renderLastFeedback(); }
 
 // ---------- Veiksmai ----------
 ["prompt", "result"].forEach(id => $(id).addEventListener("input", () => {
@@ -434,15 +443,16 @@ $("check").addEventListener("click", () => {
   const a = { prompt, result, strokes, chars: prompt.length, sim, penalty, holed: !penalty && sim >= h.goal };
   (S.attempts[h.id] = S.attempts[h.id] || []).push(a);
   S.drafts[h.id] = { prompt, result: "" };
-  renderAll(); showFeedback(a); save();
+  renderAll(); save();
   $("feedback").scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
 
 $("reset").addEventListener("click", () => {
   if (!confirm("Pradėti iš naujo? Visi bandymai bus ištrinti.")) return;
-  const custom = S.custom;
-  S = fresh(); S.custom = custom;
-  $("feedback").hidden = true; stopTimer(); renderAll(); save();
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  S = fresh(); applyLink();
+  if (!S.custom) $("customText").value = "";
+  stopTimer(); renderCustomForm(); renderAll();
 });
 
 // Mokytojo duobutė
