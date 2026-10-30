@@ -14,6 +14,7 @@ JKM pamokų interaktyvios užduotys
 ### 3 pamoka
 
 - [3 pamoka · Sauga su DI](03-sauga-su-di/index.html) – dešimtoko Luko „Facebook“ puslapio ir sienos kopijoje prikabink komentarus prie probleminių saugumo ir DI vietų; suvedus mokytojo slaptažodį atidaromi tikrieji atsakymai.
+- [3 pamoka · Padėk klasiokei](03-padek-klasiokei/index.html) – interaktyviame pokalbyje atrašyk klasiokei, iš kurios nuotraukų su DI sugeneravo nepadorių scenų ir reikalauja išpirkos, sudaryk pirmųjų valandų veiksmų planą ir reaguok, kai klastotės ima plisti mokykloje; mygtukas „Tikrinti“ pateikia patarimus, o suvedus mokytojo slaptažodį atidaromi pavyzdiniai atsakymai.
 
 ## Progresas
 
