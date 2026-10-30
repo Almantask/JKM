@@ -1,0 +1,1869 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sauga su DI</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --muted: #5f6670;
+    --line: #d9d4c9;
+    --accent: #2f6fdb;
+    --ok: #1f9d6b;
+    --warn: #c98a00;
+    --bad: #d6336c;
+    --shadow: 0 2px 8px rgba(0,0,0,.12);
+
+    /* Facebook puslapio kintamieji */
+    --fb-bg: #f0f2f5;
+    --fb-card: #ffffff;
+    --fb-ink: #050505;
+    --fb-muted: #65676b;
+    --fb-line: #dadde1;
+    --fb-blue: #1877f2;
+    --fb-chip: #e4e6eb;
+    --fb-sub: #f7f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+      --line: #3a3f46; --shadow: 0 2px 10px rgba(0,0,0,.5);
+      --fb-bg: #18191a; --fb-card: #242526; --fb-ink: #e4e6eb; --fb-muted: #b0b3b8;
+      --fb-line: #393a3b; --fb-blue: #4599ff; --fb-chip: #3a3b3c; --fb-sub: #1c1d1e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191c; --surface: #212429; --ink: #eceff3; --muted: #a3aab4;
+    --line: #3a3f46; --shadow: 0 2px 10px rgba(0,0,0,.5);
+    --fb-bg: #18191a; --fb-card: #242526; --fb-ink: #e4e6eb; --fb-muted: #b0b3b8;
+    --fb-line: #393a3b; --fb-blue: #4599ff; --fb-chip: #3a3b3c; --fb-sub: #1c1d1e;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 56px; }
+  header .tag { color: var(--muted); font-size: 14px; letter-spacing: .02em; }
+  h1 { margin: 4px 0 6px; font-size: clamp(26px, 4vw, 36px); }
+  h2 { margin: 0 0 8px; font-size: 20px; }
+  h3 { margin: 0 0 6px; font-size: 16px; }
+  .lead { margin: 0 0 16px; color: var(--muted); max-width: 70ch; }
+  .hint { color: var(--muted); font-size: 14px; }
+  [hidden] { display: none !important; }
+
+  button {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); padding: 8px 14px; cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { color: var(--bad); }
+  button.danger:hover:not(:disabled) { border-color: var(--bad); }
+  button.small { padding: 5px 10px; font-size: 13px; border-radius: 8px; }
+  button:disabled { opacity: .5; cursor: default; }
+
+  input[type="text"], input[type="password"], textarea {
+    font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  textarea { width: 100%; min-height: 76px; resize: vertical; }
+
+  .steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 0; list-style: none; }
+  .steps li {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 14px; font-size: 15px;
+  }
+  .steps b { color: var(--accent); margin-right: 5px; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .timer { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .timer.over { color: var(--bad); }
+  .filter-group { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .filter-group button { border: 0; padding: 5px 10px; font-size: 13px; border-radius: 7px; background: transparent; }
+  .filter-group button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+  .unlocked-banner {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+    background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+    border: 2px solid var(--ok); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px;
+    font-size: 15px;
+  }
+  .unlocked-banner b { color: var(--ok); }
+
+  /* Darbo laukas: kairėje FB puslapis, dešinėje komentarų juosta */
+  .workspace {
+    display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; align-items: start;
+  }
+  @media (max-width: 980px) {
+    .workspace { grid-template-columns: 1fr; }
+  }
+
+  /* Naršyklės rėmas aplink Facebook kopiją */
+  .browser-frame {
+    border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+    background: var(--fb-bg); box-shadow: var(--shadow);
+  }
+  .browser-bar {
+    display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+    background: var(--surface); border-bottom: 1px solid var(--line); font-size: 13px;
+  }
+  .browser-dots { display: inline-flex; gap: 5px; }
+  .browser-dots i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--line); }
+  .browser-dots i:nth-child(1) { background: #ef4444; }
+  .browser-dots i:nth-child(2) { background: #f59e0b; }
+  .browser-dots i:nth-child(3) { background: #22c55e; }
+  .browser-url {
+    flex: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+    padding: 4px 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mode-badge {
+    font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent);
+    white-space: nowrap;
+  }
+  .mode-badge.review {
+    background: color-mix(in srgb, var(--bad) 14%, var(--surface)); color: var(--bad);
+  }
+
+  /* Interaktyvi drobė su smeigtukais */
+  .fb-stage {
+    position: relative; background: var(--fb-bg); color: var(--fb-ink);
+    font: 14px/1.42 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    user-select: none;
+  }
+  .fb-stage.pinning-mode {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M14 2C8.5 2 4 6.1 4 11.2 4 14.1 5.5 16.7 7.8 18.4L6.5 25l6.3-4.6c.4 0 .8.1 1.2.1 5.5 0 10-4.1 10-9.3S19.5 2 14 2z' fill='%232f6fdb' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M14 7.5v7M10.5 11h7' stroke='%23ffffff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 6 24, crosshair;
+  }
+
+  /* Facebook viršutinė juosta */
+  .fb-topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--fb-card); border-bottom: 1px solid var(--fb-line); padding: 8px 16px;
+  }
+  .fb-brand { display: flex; align-items: center; gap: 8px; }
+  .fb-logo {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--fb-blue); color: #fff;
+    display: grid; place-items: center; font-weight: 900; font-size: 24px; line-height: 1;
+  }
+  .fb-search {
+    background: var(--fb-chip); color: var(--fb-muted); border-radius: 999px;
+    padding: 7px 14px; font-size: 13px; min-width: 180px;
+  }
+  .fb-nav-icons { display: flex; gap: 6px; color: var(--fb-muted); font-size: 17px; }
+  .fb-nav-icons span {
+    padding: 6px 16px; border-radius: 8px;
+  }
+  .fb-nav-icons span.active { color: var(--fb-blue); border-bottom: 3px solid var(--fb-blue); border-radius: 0; }
+  .fb-me-pill {
+    display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px;
+    background: var(--fb-chip); padding: 4px 10px 4px 4px; border-radius: 999px;
+  }
+  @media (max-width: 680px) {
+    .fb-nav-icons, .fb-search { display: none; }
+  }
+
+  /* Profilio viršelis ir galva */
+  .fb-profile-top { background: var(--fb-card); border-bottom: 1px solid var(--fb-line); }
+  .fb-cover {
+    height: 165px; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #1b3358 0%, #2a5298 55%, #f59e0b 130%);
+  }
+  .fb-cover svg { width: 100%; height: 100%; display: block; }
+  .fb-profile-row {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+    padding: 0 20px 14px; margin-top: -36px; position: relative;
+  }
+  .fb-avatar-lg {
+    width: 96px; height: 96px; border-radius: 50%; border: 4px solid var(--fb-card);
+    background: #dbeafe; overflow: hidden; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  }
+  .fb-avatar-sm {
+    width: 36px; height: 36px; border-radius: 50%; background: #dbeafe; overflow: hidden; flex-shrink: 0;
+    display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #1e3a8a;
+  }
+  .fb-avatar-xs {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--fb-chip);
+    display: grid; place-items: center; font-weight: 700; font-size: 11px; flex-shrink: 0;
+  }
+  .fb-profile-meta { flex: 1; min-width: 210px; padding-top: 40px; }
+  .fb-profile-meta h2 { margin: 0; font-size: 23px; color: var(--fb-ink); }
+  .fb-public-strip {
+    display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-top: 4px; padding: 4px 10px; border-radius: 8px;
+    background: var(--fb-sub); border: 1px solid var(--fb-line); font-size: 12.5px; color: var(--fb-muted);
+  }
+  .fb-public-strip b { color: var(--fb-ink); }
+  .fb-tabs {
+    display: flex; gap: 4px; padding: 0 20px; border-top: 1px solid var(--fb-line);
+    font-weight: 600; font-size: 13.5px; color: var(--fb-muted); overflow-x: auto;
+  }
+  .fb-tabs span { padding: 11px 14px; white-space: nowrap; }
+  .fb-tabs span.active { color: var(--fb-blue); border-bottom: 3px solid var(--fb-blue); }
+
+  /* Dviejų stulpelių Facebook turinys */
+  .fb-body {
+    display: grid; grid-template-columns: 295px minmax(0, 1fr); gap: 14px; padding: 14px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .fb-body { grid-template-columns: 1fr; padding: 10px; }
+  }
+  .fb-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+  .fb-card {
+    position: relative; background: var(--fb-card); border: 1px solid var(--fb-line);
+    border-radius: 10px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+  .fb-card-title {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    font-weight: 700; font-size: 16px; margin-bottom: 8px; color: var(--fb-ink);
+  }
+  .fb-card-title small { font-size: 12px; font-weight: 600; color: var(--fb-muted); }
+
+  /* Skiltis „Apie“ */
+  .fb-bio-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 13.5px; }
+  .fb-bio-list li { display: flex; gap: 8px; align-items: flex-start; }
+  .fb-bio-list .ico { width: 18px; text-align: center; flex-shrink: 0; }
+
+  /* Reels / Balso įrašas */
+  .reel-box {
+    border-radius: 10px; overflow: hidden; border: 1px solid var(--fb-line);
+    background: linear-gradient(160deg, #0f172a, #1e293b); color: #f8fafc; padding: 10px;
+  }
+  .reel-top { display: flex; justify-content: space-between; font-size: 11.5px; opacity: .9; margin-bottom: 6px; }
+  .reel-wave {
+    display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.1);
+    padding: 6px 8px; border-radius: 8px; margin-top: 6px; font-size: 12px;
+  }
+  .reel-caption { font-size: 12.5px; margin-top: 6px; color: #e2e8f0; }
+
+  /* Messenger langelis */
+  .msg-card { border-top: 3px solid var(--fb-blue); }
+  .msg-head {
+    display: flex; align-items: center; gap: 8px; padding-bottom: 8px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--fb-line);
+  }
+  .msg-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
+  .msg-bubbles { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .msg-b { padding: 7px 10px; border-radius: 12px; max-width: 92%; }
+  .msg-b.them { background: var(--fb-chip); align-self: flex-start; border-bottom-left-radius: 3px; }
+  .msg-b.voice {
+    display: flex; align-items: center; gap: 7px; font-weight: 600;
+    background: color-mix(in srgb, var(--fb-blue) 15%, var(--fb-chip));
+  }
+  .msg-draft {
+    margin-top: 8px; padding: 7px 11px; border-radius: 18px; border: 1px solid var(--fb-line);
+    background: var(--fb-chip); font-size: 12.5px; color: var(--fb-ink);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .msg-send { color: var(--fb-blue); font-size: 14px; flex-shrink: 0; }
+
+  /* Įrašo kūrimo juosta */
+  .fb-composer { display: flex; align-items: center; gap: 10px; }
+  .fb-composer-pill {
+    flex: 1; background: var(--fb-chip); color: var(--fb-muted); border-radius: 999px;
+    padding: 8px 14px; font-size: 13.5px;
+  }
+
+  /* Sienos įrašai */
+  .post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .post-author { font-weight: 700; font-size: 14.5px; color: var(--fb-ink); }
+  .post-sub { font-size: 12px; color: var(--fb-muted); }
+  .post-text { margin: 0 0 10px; font-size: 14px; line-height: 1.45; }
+
+  /* Įrašo priedai (ekrano nuotraukos, iliustracijos) */
+  .mock-shot {
+    border: 1px solid var(--fb-line); border-radius: 9px; overflow: hidden;
+    background: var(--fb-sub); margin-bottom: 8px;
+  }
+  .mock-urlbar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 10px;
+    background: var(--fb-chip); color: var(--fb-ink); font: 600 12px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+    border-bottom: 1px solid var(--fb-line);
+  }
+  .mock-tos {
+    background: var(--fb-card); color: var(--fb-muted); padding: 4px 10px; font-size: 11.5px; border-bottom: 1px solid var(--fb-line);
+  }
+  .mock-chat { padding: 10px; display: grid; gap: 7px; font-size: 12.5px; }
+  .file-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px;
+    background: var(--fb-card); border: 1px solid var(--fb-line); font-weight: 600; font-size: 12px;
+    margin: 3px 4px 0 0;
+  }
+
+  .split-media { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  @media (max-width: 560px) { .split-media { grid-template-columns: 1fr; } }
+  .perm-box {
+    border: 1px solid var(--fb-line); border-radius: 8px; padding: 9px 10px;
+    background: var(--fb-sub); font-size: 12.5px;
+  }
+  .perm-box ul { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; }
+  .perm-allow {
+    display: inline-block; margin-top: 4px; background: var(--fb-blue); color: #fff;
+    font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 6px;
+  }
+  .ai-face-box {
+    border: 1px solid var(--fb-line); border-radius: 8px; padding: 8px;
+    background: linear-gradient(145deg, #312e81, #4c1d95); color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  }
+  .ai-face-box small { font-size: 11px; opacity: .88; margin-top: 4px; }
+
+  .link-card {
+    border: 1px solid var(--fb-line); border-radius: 8px; padding: 9px 12px;
+    background: var(--fb-sub); margin-bottom: 8px;
+  }
+  .link-domain { font-size: 11.5px; text-transform: uppercase; color: var(--fb-muted); letter-spacing: .03em; }
+  .link-title { font-weight: 700; font-size: 14px; margin: 2px 0; color: var(--fb-ink); }
+  .link-cta {
+    display: inline-block; margin-top: 5px; padding: 5px 11px; border-radius: 6px;
+    background: var(--fb-chip); font-weight: 700; font-size: 12.5px;
+  }
+
+  .shared-embed {
+    border: 1px solid var(--fb-line); border-radius: 9px; overflow: hidden; margin-bottom: 8px;
+  }
+  .shared-body { padding: 10px 12px; }
+
+  .fb-actions {
+    display: flex; justify-content: space-around; border-top: 1px solid var(--fb-line);
+    padding-top: 7px; margin-top: 6px; color: var(--fb-muted); font-weight: 600; font-size: 13px;
+  }
+  .fb-comments {
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--fb-line);
+    display: grid; gap: 6px; font-size: 13px;
+  }
+  .fb-comment { display: flex; gap: 7px; align-items: flex-start; }
+  .fb-comment-bubble {
+    background: var(--fb-chip); border-radius: 12px; padding: 6px 10px; flex: 1;
+  }
+  .fb-comment-bubble b { display: block; font-size: 12.5px; }
+
+  /* Atskleistos probleminės ir saugios zonos */
+  .fb-stage.show-answers [data-zone].is-problem-revealed {
+    outline: 2.5px dashed var(--bad);
+    outline-offset: -2px;
+    box-shadow: inset 0 0 0 9999px rgba(214, 51, 108, .055);
+  }
+  .fb-stage.show-answers .fb-public-strip.is-problem-revealed {
+    outline-offset: 2px;
+  }
+  .fb-stage.show-answers [data-zone].is-safe-revealed {
+    outline: 2px dashed var(--ok);
+    outline-offset: -2px;
+  }
+  .safe-pill {
+    display: none; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: var(--ok); color: #fff; margin-left: auto;
+  }
+  .fb-stage.show-answers .is-safe-revealed .safe-pill { display: inline-block; }
+
+  /* Smeigtukų sluoksnis */
+  .pin-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+  .pin-marker {
+    position: absolute; pointer-events: auto;
+    width: 30px; height: 30px; padding: 0;
+    border-radius: 50% 50% 50% 3px;
+    transform: translate(-3px, -27px) rotate(0deg);
+    display: grid; place-items: center;
+    font: 800 13px/1 system-ui, sans-serif;
+    border: 2px solid #fff;
+    box-shadow: 0 3px 10px rgba(0,0,0,.28);
+    transition: transform .12s ease;
+    touch-action: none;
+  }
+  .pin-marker:hover, .pin-marker.active {
+    transform: translate(-3px, -27px) scale(1.16);
+    z-index: 30;
+  }
+  .pin-marker.student { background: var(--accent); color: #fff; cursor: grab; }
+  .pin-marker.student:active { cursor: grabbing; }
+  .pin-marker.draft { background: #6366f1; color: #fff; }
+  .pin-marker.answer {
+    background: var(--bad); color: #fff;
+    border-radius: 50% 50% 3px 50%;
+    transform: translate(-27px, -27px);
+    cursor: pointer;
+  }
+  .pin-marker.answer:hover, .pin-marker.answer.active {
+    transform: translate(-27px, -27px) scale(1.16);
+  }
+
+  /* Komentaro iššokanti kortelė (popover) */
+  .pin-popover {
+    position: absolute; z-index: 45;
+    width: min(320px, calc(100% - 24px));
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.28);
+    user-select: text; cursor: default;
+  }
+  .pop-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;
+  }
+  .pop-head strong { font-size: 14px; }
+  .pop-close {
+    border: 0; background: transparent; padding: 2px 6px; font-size: 18px; line-height: 1; color: var(--muted);
+  }
+  .pop-zone { font-size: 12px; color: var(--muted); margin: -4px 0 8px; }
+  .pop-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+  .pop-answer-tag {
+    display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: var(--bad); color: #fff; margin-bottom: 6px;
+  }
+  .pop-answer-body p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.45; }
+  .pop-safe-tip {
+    padding: 7px 10px; border-radius: 8px; font-size: 13px;
+    background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+    border-left: 3px solid var(--ok);
+  }
+  .pop-student-echo {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 12.5px; color: var(--muted);
+  }
+
+  /* Dešinioji komentarų juosta */
+  .comments-rail {
+    position: sticky; top: 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+  }
+  .rail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .rail-head h2 { margin: 0; font-size: 17px; }
+  .count-pill {
+    background: var(--accent); color: #fff; border-radius: 999px; padding: 2px 9px;
+    font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+  .pin-list {
+    list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px;
+    max-height: 58vh; overflow-y: auto;
+  }
+  .pin-item {
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+    background: var(--bg); cursor: pointer; font-size: 13.5px;
+  }
+  .pin-item:hover, .pin-item.active { border-color: var(--accent); }
+  .pin-item-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12px; color: var(--muted); }
+  .pin-badge-sm {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: inline-grid; place-items: center; font-weight: 700; font-size: 11px; flex-shrink: 0;
+  }
+  .pin-item-text {
+    margin: 0; color: var(--ink); word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .rail-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+  /* Apatinės skiltys */
+  .panel {
+    margin-top: 16px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px;
+  }
+  .pw-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .pw-row input { width: 220px; }
+  .msg-bad { color: var(--bad); font-weight: 600; font-size: 14px; }
+  .msg-ok { color: var(--ok); font-weight: 600; font-size: 14px; }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 14px; }
+  .stat-card {
+    border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; background: var(--bg);
+  }
+  .stat-card b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .stat-card.found b { color: var(--ok); }
+
+  .answers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; }
+  .ans-card {
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--bg);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .ans-card.caught { border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); }
+  .ans-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ans-num {
+    display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; color: var(--bad);
+  }
+  .status-pill { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .status-pill.hit { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .status-pill.miss { background: color-mix(in srgb, var(--muted) 16%, transparent); color: var(--muted); }
+  .ans-card p { margin: 0; font-size: 13.5px; }
+  .ans-yours {
+    margin-top: 4px; padding: 6px 9px; border-radius: 8px; background: var(--surface);
+    border: 1px solid var(--line); font-size: 12.5px;
+  }
+  .ans-card .jump-btn { margin-top: auto; align-self: flex-start; }
+
+  .safe-explain {
+    margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--ok) 50%, var(--line));
+    background: color-mix(in srgb, var(--ok) 8%, var(--surface)); font-size: 14px;
+  }
+
+  .remember {
+    margin-top: 16px; border-left: 4px solid var(--accent); padding: 12px 16px; background: var(--surface);
+    border-radius: 0 14px 14px 0; font-size: 17px;
+  }
+  .remember small { display: block; color: var(--muted); font-size: 13px; margin-bottom: 2px; }
+</style>
+<script src="../shared/nav.js?v=2" data-key="jkm-03-sauga-su-di" defer></script>
+</head>
+<body>
+<main>
+  <header>
+    <div class="tag">3 pamoka · Sauga su DI · Individualiai ar poroje · 15 min</div>
+    <h1>Sauga su DI</h1>
+    <p class="lead">Dešimtokas <b>Lukas</b> aktyviai dalijasi savo kasdienybe „Facebook“ puslapyje ir viskam naudoja dirbtinį intelektą. Peržiūrėk jo profilį, žinutes ir sieną – <b>paspausk bet kurioje puslapio vietoje</b>, prikabink komentarą ir parašyk, <b>kokią saugumo ar DI problemą ten matai</b>.</p>
+  </header>
+
+  <ol class="steps">
+    <li><b>1</b>Spustelėk ant įtartinos vietos Luko puslapyje</li>
+    <li><b>2</b>Parašyk komentare, kodėl tai pavojinga</li>
+    <li><b>3</b>Baigęs suvesk mokytojo slaptažodį ir palygink atsakymus</li>
+  </ol>
+
+  <div class="toolbar">
+    <button id="startTimer" type="button">▶ Pradėti 15 min</button>
+    <button id="togglePinMode" type="button" hidden>✎ Pridėti dar komentarų</button>
+    <div class="filter-group" id="filterGroup" role="group" aria-label="Žymų rodymas" hidden>
+      <button type="button" data-filter="both" aria-pressed="true">Visos žymos</button>
+      <button type="button" data-filter="answers" aria-pressed="false">Tik atsakymai</button>
+      <button type="button" data-filter="mine" aria-pressed="false">Tik mano</button>
+    </div>
+    <button id="reset" type="button">Iš naujo</button>
+    <span class="timer" id="timer">15:00</span>
+  </div>
+
+  <div class="unlocked-banner" id="unlockedBanner" hidden>
+    <span><b>✓ Atsakymai atrakinti!</b> Puslapyje pažymėtos visos <b>9 probleminės vietos</b> – spausk ant raudonų smeigtukų <b>!1–!9</b> arba peržiūrėk suvestinę apačioje.</span>
+    <button type="button" class="small" id="scrollSummary">Žiūrėti suvestinę ↓</button>
+  </div>
+
+  <div class="workspace">
+    <section class="browser-frame" aria-label="Luko Facebook puslapio kopija">
+      <div class="browser-bar">
+        <span class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="browser-url">🔒 facebook.com/lukas.kazlauskas.10b</span>
+        <span class="mode-badge" id="modeBadge">📌 Spausk ant puslapio ir komentuok</span>
+      </div>
+
+      <div class="fb-stage pinning-mode" id="fbStage">
+        <!-- Facebook viršutinė juosta -->
+        <div class="fb-topbar" data-zone="fb-topbar">
+          <div class="fb-brand">
+            <span class="fb-logo" aria-hidden="true">f</span>
+            <span class="fb-search">🔍 Ieškoti „Facebook“</span>
+          </div>
+          <div class="fb-nav-icons" aria-hidden="true">
+            <span class="active">🏠</span><span>🎬</span><span>👥</span><span>🎮</span>
+          </div>
+          <div class="fb-me-pill">
+            <span class="fb-avatar-xs" aria-hidden="true">LK</span>
+            <span>Lukas</span>
+          </div>
+        </div>
+
+        <!-- Profilio viršus -->
+        <div class="fb-profile-top" data-zone="profile-header">
+          <div class="fb-cover" aria-hidden="true">
+            <svg viewBox="0 0 860 165" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#172554"/>
+                  <stop offset="60%" stop-color="#1d4ed8"/>
+                  <stop offset="100%" stop-color="#ea580c"/>
+                </linearGradient>
+              </defs>
+              <rect width="860" height="165" fill="url(#sky)"/>
+              <circle cx="720" cy="46" r="26" fill="#fde047" opacity=".85"/>
+              <path d="M0 165V105l70-12 55 18 85-32 60 22 95-15 80 25 110-28 95 20 110-16 100 22v56z" fill="#0f172a" opacity=".55"/>
+              <text x="510" y="138" fill="#ffffff" opacity=".85" font-size="15" font-weight="700" font-family="system-ui, sans-serif">🏀 Vilnius · Gyveni tik kartą!</text>
+            </svg>
+          </div>
+
+          <div class="fb-profile-row">
+            <div class="fb-avatar-lg" aria-hidden="true">
+              <svg viewBox="0 0 96 96">
+                <rect width="96" height="96" fill="#bfdbfe"/>
+                <circle cx="48" cy="38" r="19" fill="#fed7aa"/>
+                <path d="M29 34c2-13 36-15 38 0-6-5-13-6-19-6s-13 1-19 6z" fill="#451a03"/>
+                <circle cx="41" cy="39" r="2.2" fill="#1e293b"/>
+                <circle cx="55" cy="39" r="2.2" fill="#1e293b"/>
+                <path d="M42 47q6 5 12 0" fill="none" stroke="#9a3412" stroke-width="2.2" stroke-linecap="round"/>
+                <path d="M18 96c4-22 18-32 30-32s26 10 30 32z" fill="#2563eb"/>
+              </svg>
+            </div>
+            <div class="fb-profile-meta">
+              <h2>Lukas Kazlauskas</h2>
+              <div class="fb-public-strip" data-zone="profile-public">
+                <span>🌐 Viešas profilis</span>
+                <span>·</span>
+                <span><b>842 draugai</b></span>
+                <span>·</span>
+                <span>310 sekėjų</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fb-tabs" aria-hidden="true">
+            <span class="active">Įrašai</span>
+            <span>Apie</span>
+            <span>Draugai (842)</span>
+            <span>Nuotraukos</span>
+            <span>Reels</span>
+          </div>
+        </div>
+
+        <!-- Pagrindinis dviejų stulpelių turinys -->
+        <div class="fb-body">
+          <!-- Kairysis stulpelis -->
+          <div class="fb-col">
+            <div class="fb-card" data-zone="bio-osint">
+              <div class="fb-card-title">
+                <span>Apie</span>
+                <small>🌐</small>
+              </div>
+              <ul class="fb-bio-list">
+                <li><span class="ico" aria-hidden="true">🎂</span><span>Gimė <b>2010 m. gegužės 14 d.</b></span></li>
+                <li><span class="ico" aria-hidden="true">🏫</span><span>Mokosi <b>JKM gimnazijoje, 10B klasėje</b></span></li>
+                <li><span class="ico" aria-hidden="true">🏠</span><span>Gyvena <b>Žirmūnų g. 48-12, Vilnius</b></span></li>
+                <li><span class="ico" aria-hidden="true">📱</span><span><b>+370 612 84 910</b></span></li>
+                <li><span class="ico" aria-hidden="true">🐕</span><span>Šuo <b>Reksas</b></span></li>
+                <li><span class="ico" aria-hidden="true">🏀</span><span>Antr. ir ketv. <b>16:00–19:00</b> – treniruotės su visa šeima „Gym+“</span></li>
+              </ul>
+            </div>
+
+            <div class="fb-card" data-zone="reels-voice">
+              <div class="fb-card-title">
+                <span>Reels</span>
+                <small>🌐</small>
+              </div>
+              <div class="reel-box">
+                <div class="reel-top">
+                  <span>🎬 Reels · 0:38</span>
+                  <span>▶ 1,9 tūkst.</span>
+                </div>
+                <svg viewBox="0 0 250 105" aria-hidden="true" style="width:100%;height:auto;border-radius:6px;display:block">
+                  <rect width="250" height="105" fill="#1e293b"/>
+                  <circle cx="82" cy="48" r="24" fill="#fed7aa"/>
+                  <path d="M60 42c3-14 41-16 44 0-8-5-15-6-22-6s-14 1-22 6z" fill="#451a03"/>
+                  <circle cx="74" cy="48" r="2.5" fill="#0f172a"/>
+                  <circle cx="90" cy="48" r="2.5" fill="#0f172a"/>
+                  <ellipse cx="82" cy="59" rx="5" ry="3.5" fill="#9a3412"/>
+                  <path d="M46 105c5-20 20-28 36-28s31 8 36 28z" fill="#3b82f6"/>
+                  <g fill="#38bdf8">
+                    <rect x="138" y="42" width="4" height="22" rx="2"/>
+                    <rect x="147" y="30" width="4" height="46" rx="2"/>
+                    <rect x="156" y="36" width="4" height="34" rx="2"/>
+                    <rect x="165" y="24" width="4" height="58" rx="2"/>
+                    <rect x="174" y="38" width="4" height="30" rx="2"/>
+                    <rect x="183" y="28" width="4" height="50" rx="2"/>
+                    <rect x="192" y="44" width="4" height="18" rx="2"/>
+                    <rect x="201" y="33" width="4" height="40" rx="2"/>
+                    <rect x="210" y="41" width="4" height="24" rx="2"/>
+                  </g>
+                </svg>
+                <div class="reel-wave">🔊 „Sveiki visi, čia Lukas, mano rytas prieš mokyklą…“</div>
+                <div class="reel-caption">♡ 142 · 💬 19 · ⬇ Atsisiųsti</div>
+              </div>
+            </div>
+
+            <div class="fb-card msg-card" data-zone="messenger-scam">
+              <div class="msg-head">
+                <span class="fb-avatar-sm" style="background:#fce7f3;color:#9d174d" aria-hidden="true">GM</span>
+                <div>
+                  <div style="font-weight:700;font-size:13.5px"><span class="msg-dot"></span> Gabija Matulytė</div>
+                  <div class="post-sub">Jūs nesate draugai „Facebook“ tinkle</div>
+                </div>
+              </div>
+              <div class="msg-bubbles">
+                <div class="msg-b them voice">▶ 0:08 ılıllıılı · Balso žinutė</div>
+                <div class="msg-b them">Lukai, čia aš, sudaužiau telefoną, rašau iš kitos paskyros! Bandau atkurti prieigą – paspaudžiau, kad kodas ateitų tau SMS žinute, permesk jį čia greitai 🙏 Ir gal gali iki rytojaus pervesti 35 € į LT91 3500 0100…?</div>
+              </div>
+              <div class="msg-draft">
+                <span>O, gerai kad balso žinutę atsiuntei! Kodas 849201, tuoj pervesiu 👍</span>
+                <span class="msg-send" aria-hidden="true">➤</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dešinysis stulpelis: Siena -->
+          <div class="fb-col">
+            <div class="fb-card fb-composer" aria-hidden="true">
+              <span class="fb-avatar-sm">LK</span>
+              <span class="fb-composer-pill">Ką galvoji, Lukai?</span>
+            </div>
+
+            <!-- Saugus įrašas #1: atsakingas mokymasis su DI -->
+            <article class="fb-card" data-zone="post-safe-study-ai">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas</div>
+                  <div class="post-sub">prieš 12 min. · 👥</div>
+                </div>
+                <span class="safe-pill">✓ Saugus įrašas</span>
+              </div>
+              <p class="post-text">Ryt biologijos kontrolinis apie fotosintezę 🌿 Paprašiau DI patreniruoti mane: kad užduotų 5 klausimus po vieną be atsakymų ir paaiškintų, kur klystu. Pirmus du susimoviau, bet dabar bent nebesupainiosiu šviesinės ir tamsinės fazės 😅</p>
+              <div class="fb-comments">
+                <div class="fb-comment">
+                  <span class="fb-avatar-xs" aria-hidden="true">KP</span>
+                  <div class="fb-comment-bubble">
+                    <b>Kotryna P.</b>
+                    Gera mintis! Reiks ir man vakare taip pasikartoti prieš kontrolinį.
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>👍 Patinka (8)</span><span>💬 1 komentaras</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- Probleminis įrašas: ChatGPT + asmens ir sveikatos duomenys -->
+            <article class="fb-card" data-zone="post-gpt-leak">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas</div>
+                  <div class="post-sub">prieš 25 min. · 🌐</div>
+                </div>
+              </div>
+              <p class="post-text">„ChatGPT“ man sutaupė visą valandą! 🔥 Įmečiau klasės kelionės sąrašą ir mamos tyrimų lapą – viską sutvarkė ir paaiškino per 10 sekundžių. Palieku pokalbio nuorodą, jei kam iš 10B reikės pasitikrinti laikus!</p>
+              <div class="mock-shot">
+                <div class="mock-urlbar">
+                  <span>ChatGPT</span>
+                  <span>chatgpt.com/share/8f3a-10b-ryga</span>
+                </div>
+                <div class="mock-chat">
+                  <div><b>Lukas:</b> Sudėliok 10B klasės kelionės į Rygą lentelę ir paprastai paaiškink mamos kraujo tyrimo rezultatus:</div>
+                  <div>
+                    <span class="file-chip">📊 10B_kelione_Ryga.xlsx</span>
+                    <span class="file-chip">📄 E_Kazlauskiene_tyrimai.pdf</span>
+                  </div>
+                  <div style="background:var(--fb-card);padding:6px 8px;border-radius:6px;border:1px solid var(--fb-line)">
+                    <b>ChatGPT:</b> Štai tvarkinga 10B klasės lentelė:<br>1. Austėja Kazlauskaitė | 61005190241 | LT849201 | +370 684 19 204<br>2. Matas Vaitkus | 51008240118 | LT773190 | +370 611 40 882…
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>👍 Patinka (4)</span><span>💬 Komentuoti</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- Saugus įrašas #2: krepšinio aikštelė be privačių detalių -->
+            <article class="fb-card" data-zone="post-safe-sunset">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas</div>
+                  <div class="post-sub">prieš 1 val. · 🌐</div>
+                </div>
+                <span class="safe-pill">✓ Saugus įrašas</span>
+              </div>
+              <p class="post-text">Rudens vakaras ir tuščia aikštelė – pagaliau įmečiau 8 tritaškius iš 10! 🏀🍂</p>
+              <div class="mock-shot" style="background:#1e293b">
+                <svg viewBox="0 0 500 140" aria-hidden="true" style="width:100%;height:auto;display:block">
+                  <defs>
+                    <linearGradient id="sunsetBg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#312e81"/>
+                      <stop offset="60%" stop-color="#c2410c"/>
+                      <stop offset="100%" stop-color="#f59e0b"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="500" height="140" fill="url(#sunsetBg)"/>
+                  <circle cx="120" cy="88" r="24" fill="#fde047" opacity=".88"/>
+                  <rect x="0" y="112" width="500" height="28" fill="#0f172a"/>
+                  <!-- Krepšinio stovas ir lankas -->
+                  <rect x="378" y="42" width="6" height="72" fill="#0f172a"/>
+                  <rect x="348" y="30" width="6" height="36" fill="#f8fafc"/>
+                  <rect x="330" y="54" width="20" height="4" fill="#ef4444"/>
+                  <path d="M332 58l3 14h10l3-14" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+                  <circle cx="292" cy="48" r="8" fill="#ea580c" stroke="#7c2d12" stroke-width="1.5"/>
+                </svg>
+              </div>
+              <div class="fb-comments">
+                <div class="fb-comment">
+                  <span class="fb-avatar-xs" aria-hidden="true">DR</span>
+                  <div class="fb-comment-bubble">
+                    <b>Dominykas R.</b>
+                    Oho, ryt per ilgąją pertrauką patikrinsim, ar pakartosi 😄
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>🔥 14</span><span>💬 1 komentaras</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- Probleminis įrašas: Draugo nuotrauka DI programėlėje + leidimai -->
+            <article class="fb-card" data-zone="post-faceswap">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas</div>
+                  <div class="post-sub">prieš 2 val. · 🌐</div>
+                </div>
+              </div>
+              <p class="post-text">Per fiziką buvo nuobodu, tai išbandžiau naują <b>„FaceSwap Ultra AI“</b> programėlę su Mato nuotrauka 😂 Žiūrėkit, kaip padarė!</p>
+              <div class="split-media">
+                <div class="perm-box">
+                  <b>FaceSwap Ultra AI</b>
+                  <ul>
+                    <li>✓ Galerija (2 410 nuotr.)</li>
+                    <li>✓ Kontaktai (184)</li>
+                    <li>✓ Mikrofonas</li>
+                  </ul>
+                  <span class="perm-allow">Prieiga suteikta</span>
+                </div>
+                <div class="ai-face-box">
+                  <svg viewBox="0 0 110 78" aria-hidden="true" style="width:96px;height:68px">
+                    <circle cx="55" cy="36" r="24" fill="#fde68a"/>
+                    <circle cx="46" cy="33" r="5" fill="#1e1b4b"/>
+                    <circle cx="65" cy="31" r="7" fill="#1e1b4b"/>
+                    <path d="M42 47q13 12 26-2" fill="none" stroke="#be123c" stroke-width="3.5" stroke-linecap="round"/>
+                    <path d="M30 18l14-8 11 7 12-7 13 8" fill="none" stroke="#f43f5e" stroke-width="3"/>
+                  </svg>
+                  <b style="font-size:12.5px">Rezultatas #4812</b>
+                  <small>faceswap-ultra.app</small>
+                </div>
+              </div>
+              <div class="fb-comments">
+                <div class="fb-comment">
+                  <span class="fb-avatar-xs" style="background:#fee2e2;color:#991b1b" aria-hidden="true">MV</span>
+                  <div class="fb-comment-bubble">
+                    <b>Matas V.</b>
+                    Lukai, ištrink!! Aš gi prašiau nekelti mano nuotraukų niekur 😠
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>😆 7</span><span>💬 1 komentaras</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- 3 įrašas: Saugus kontrolinis įrašas (NeonZ) -->
+            <article class="fb-card" data-zone="post-safe-neonz">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas</div>
+                  <div class="post-sub">vakar, 18:10 · 👥</div>
+                </div>
+                <span class="safe-pill">✓ Saugus įrašas</span>
+              </div>
+              <p class="post-text">Kas ketvirtadienį po pamokų eina į mokyklos sporto klubo <b>„NeonZ“</b> atvirą dodžbolo tamsoje treniruotę? 🏀⚡ Nepamirškit sportinių batelių ir vandens!</p>
+              <div class="fb-comments">
+                <div class="fb-comment">
+                  <span class="fb-avatar-xs" aria-hidden="true">AK</span>
+                  <div class="fb-comment-bubble">
+                    <b>Austėja K.</b>
+                    Aš jau užsirašiau pas kūno kultūros mokytoją, susitinkam prie salės!
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>👍 Patinka (11)</span><span>💬 1 komentaras</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- 4 įrašas: Remiama Deepfake investicijų reklama -->
+            <article class="fb-card" data-zone="post-deepfake-ad">
+              <div class="post-head">
+                <span class="fb-avatar-sm" style="background:#dcfce7;color:#14532d" aria-hidden="true">DI</span>
+                <div>
+                  <div class="post-author">Lietuvos Jaunimo DI Fondas</div>
+                  <div class="post-sub">Remiama · 🌐</div>
+                </div>
+              </div>
+              <p class="post-text">Žinomas TV žinių vedėjas tiesioginiame eteryje pristatė naują „Valstybinę DI platformą“, kuri jaunuoliams nuo 14 m. leidžia iš <b>50 € uždirbti 350 € per parą</b>. Šiandien registracijai liko 6 vietos.</p>
+              <div class="mock-shot">
+                <svg viewBox="0 0 500 185" aria-hidden="true" style="width:100%;height:auto;display:block">
+                  <rect width="500" height="185" fill="#0f172a"/>
+                  <!-- Studijos fonas su DI teksto klaida -->
+                  <rect x="20" y="16" width="215" height="36" rx="6" fill="#1e3a8a"/>
+                  <text x="32" y="40" fill="#93c5fd" font-size="18" font-weight="800" font-family="system-ui, sans-serif">LIETUVOS BNAKAS</text>
+                  <!-- Vedėjas -->
+                  <circle cx="265" cy="68" r="28" fill="#fed7aa"/>
+                  <path d="M238 58c4-18 50-18 54 0-10-6-18-7-27-7s-17 1-27 7z" fill="#334155"/>
+                  <circle cx="255" cy="67" r="2.8" fill="#0f172a"/>
+                  <circle cx="275" cy="67" r="2.8" fill="#0f172a"/>
+                  <path d="M255 80q10 5 20 0" fill="none" stroke="#7c2d12" stroke-width="2.5"/>
+                  <path d="M212 162c8-36 26-50 53-50s45 14 53 50z" fill="#1e293b"/>
+                  <polygon points="265,114 259,152 265,160 271,152" fill="#dc2626"/>
+                  <!-- Iškelta ranka su AI 6 pirštais ir kortele -->
+                  <rect x="350" y="54" width="96" height="58" rx="8" fill="#22c55e"/>
+                  <text x="366" y="89" fill="#052e16" font-size="22" font-weight="900" font-family="system-ui, sans-serif">+350 €</text>
+                  <g fill="#fed7aa" stroke="#c2410c" stroke-width="1.2">
+                    <rect x="336" y="96" width="8" height="22" rx="4"/>
+                    <rect x="345" y="92" width="8" height="26" rx="4"/>
+                    <rect x="354" y="90" width="8" height="28" rx="4"/>
+                    <rect x="363" y="92" width="8" height="26" rx="4"/>
+                    <rect x="372" y="95" width="8" height="23" rx="4"/>
+                    <rect x="381" y="99" width="8" height="19" rx="4"/>
+                    <ellipse cx="362" cy="122" rx="26" ry="11"/>
+                  </g>
+                  <!-- Žinių juosta apačioje -->
+                  <rect x="0" y="152" width="500" height="33" fill="#dc2626"/>
+                  <text x="16" y="173" fill="#ffffff" font-size="13.5" font-weight="800" font-family="system-ui, sans-serif">▶ ŽINIOS · 0:14 / 0:45 · Tiesioginė transliacija</text>
+                </svg>
+              </div>
+              <div class="link-card">
+                <div class="link-domain">lt-ismoka-di24.xyz</div>
+                <div class="link-title">Patvirtink tapatybę per el. bankininkystę („Smart-ID“) ir aktyvuok 100 € premiją</div>
+                <span class="link-cta">Sužinoti daugiau</span>
+              </div>
+              <div class="fb-comments">
+                <div class="fb-comment">
+                  <span class="fb-avatar-xs" aria-hidden="true">J8</span>
+                  <div class="fb-comment-bubble">
+                    <b>Jonas_88392</b>
+                    Ačiū, tikrai veikia! Vakar prisijungiau per „Smart-ID“ ir šiandien jau įkrito 350 € į sąskaitą 🔥🙌
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>👍 1,2 tūkst.</span><span>💬 84 komentarai</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- 5 įrašas: Miško grybai + DI haliucinacija ir pataikavimas -->
+            <article class="fb-card" data-zone="post-mushroom-ai">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas</div>
+                  <div class="post-sub">šeštadienį, 19:40 · 👥</div>
+                </div>
+              </div>
+              <p class="post-text">Grįžom iš miško su pilnu krepšiu! 🍄 Dėl kelių suabejojau, tai nufotografavau ir paklausiau DI – patvirtino, kad pievagrybiai! Einam kepti su grietinėle 😋</p>
+              <div class="split-media">
+                <div class="mock-shot" style="margin:0;background:#14261c">
+                  <svg viewBox="0 0 220 135" aria-hidden="true" style="width:100%;height:auto;display:block">
+                    <rect width="220" height="135" fill="#14261c"/>
+                    <ellipse cx="110" cy="122" rx="85" ry="12" fill="#1f3a29"/>
+                    <!-- Kotas, maišelis (išnara) ir sijonėlis -->
+                    <path d="M92 118c-8-2-12-10-8-18h52c4 8 0 16-8 18z" fill="#e2e8f0"/>
+                    <rect x="101" y="52" width="18" height="64" rx="5" fill="#f1f5f9"/>
+                    <path d="M94 74q16 9 32 0l-5-8q-11 4-22 0z" fill="#e2e8f0"/>
+                    <!-- Žalsva kepurėlė -->
+                    <path d="M58 56c6-30 98-30 104 0z" fill="#bef264"/>
+                  </svg>
+                </div>
+                <div class="perm-box" style="display:flex;flex-direction:column;justify-content:center;gap:6px">
+                  <div style="background:var(--fb-chip);padding:6px 8px;border-radius:8px">
+                    <b>Lukas:</b> Čia juk valgomi pievagrybiai, ane?
+                  </div>
+                  <div style="background:var(--fb-card);padding:6px 8px;border-radius:8px;border:1px solid var(--fb-line)">
+                    <b>DI:</b> Taip, visiškai teisingai! Nuotraukoje matomi puikūs valgomi pievagrybiai – galite drąsiai kepti. Skanaus! 😊
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>😮 5</span><span>💬 Komentuoti</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- Saugus įrašas #4: knygų mainai mokyklos bibliotekoje -->
+            <article class="fb-card" data-zone="post-safe-books">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas</div>
+                  <div class="post-sub">sekmadienį, 14:20 · 🌐</div>
+                </div>
+                <span class="safe-pill">✓ Saugus įrašas</span>
+              </div>
+              <p class="post-text">Ką tik pabaigiau skaityti „Marsietį“ – žiauriai įtraukė, nors šiaip knygas skaitau retai 🚀 Atsinešiu į mokyklos bibliotekos knygų mainų dieną. Gal kas turit kokią gerą fantastiką ar komiksą mainais?</p>
+              <div class="fb-comments">
+                <div class="fb-comment">
+                  <span class="fb-avatar-xs" aria-hidden="true">TL</span>
+                  <div class="fb-comment-bubble">
+                    <b>Tomas L.</b>
+                    Turiu „Kopos“ pirmą dalį, galėsim apsikeisti ketvirtadienį!
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>👍 Patinka (9)</span><span>💬 1 komentaras</span><span>↗ Dalintis</span></div>
+            </article>
+
+            <!-- 6 įrašas: Pasidalintas „AI slop“ su 5 kojų šuniuku + FB prisijungimo viliojimas -->
+            <article class="fb-card" data-zone="post-ai-slop">
+              <div class="post-head">
+                <span class="fb-avatar-sm" aria-hidden="true">LK</span>
+                <div>
+                  <div class="post-author">Lukas Kazlauskas <span style="font-weight:400;color:var(--fb-muted)">pasidalino įrašu</span></div>
+                  <div class="post-sub">sekmadienį, 21:15 · 🌐</div>
+                </div>
+              </div>
+              <p class="post-text">Kaip gaila mažylio 😭 Aš jau prabalsavau nuorodoje, nepraeikit pro šalį ir jūs!! 🙏</p>
+              <div class="shared-embed">
+                <svg viewBox="0 0 500 165" aria-hidden="true" style="width:100%;height:auto;display:block">
+                  <rect width="500" height="165" fill="#1e293b"/>
+                  <!-- Potvynio vanduo -->
+                  <rect x="0" y="112" width="500" height="53" fill="#0284c7" opacity=".65"/>
+                  <!-- Šuniukas su 5 kojomis -->
+                  <ellipse cx="245" cy="96" rx="46" ry="26" fill="#d97706"/>
+                  <circle cx="215" cy="64" r="24" fill="#f59e0b"/>
+                  <ellipse cx="195" cy="66" rx="7" ry="14" fill="#92400e"/>
+                  <ellipse cx="235" cy="66" rx="7" ry="14" fill="#92400e"/>
+                  <circle cx="208" cy="61" r="3" fill="#0f172a"/>
+                  <circle cx="223" cy="61" r="3" fill="#0f172a"/>
+                  <circle cx="208" cy="68" r="2.2" fill="#38bdf8"/>
+                  <g fill="#b45309" stroke="#78350f" stroke-width="1.5">
+                    <rect x="202" y="110" width="11" height="32" rx="5"/>
+                    <rect x="219" y="112" width="11" height="32" rx="5"/>
+                    <rect x="236" y="112" width="11" height="32" rx="5"/>
+                    <rect x="253" y="112" width="11" height="32" rx="5"/>
+                    <rect x="271" y="110" width="11" height="32" rx="5"/>
+                  </g>
+                  <rect x="295" y="54" width="138" height="48" rx="4" fill="#fef3c7" stroke="#92400e" stroke-width="2"/>
+                  <text x="308" y="84" fill="#78350f" font-size="19" font-weight="900" font-family="system-ui, sans-serif">PADEKITE 😢</text>
+                </svg>
+                <div class="shared-body">
+                  <div class="post-author" style="font-size:13.5px">Širdis Širdžiai · <span class="post-sub">🌐</span></div>
+                  <p class="post-text" style="margin:4px 0 8px;font-size:13px">99 % žmonių praeis pro šalį… 💔 Kiekvienas balsas = 1 € prieglaudos maistui!</p>
+                  <div class="link-card" style="margin:0">
+                    <div class="link-domain">facebook.parama-balsas.top</div>
+                    <div class="link-title">Prisijunkite prie „Facebook“, kad jūsų balsas būtų įskaitytas</div>
+                  </div>
+                </div>
+              </div>
+              <div class="fb-actions" aria-hidden="true"><span>😢 4,8 tūkst.</span><span>💬 612 komentarų</span><span>↗ 1,9 tūkst. pasidalinimų</span></div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Smeigtukų sluoksnis -->
+        <div class="pin-layer" id="pinLayer"></div>
+
+        <!-- Iššokanti komentaro / atsakymo kortelė -->
+        <div class="pin-popover" id="pinPopover" hidden></div>
+      </div>
+    </section>
+
+    <!-- Dešinioji komentarų juosta -->
+    <aside class="comments-rail" aria-label="Mano komentarai">
+      <div class="rail-head">
+        <h2>Mano komentarai</h2>
+        <span class="count-pill" id="pinCount">0</span>
+      </div>
+      <p class="hint" id="railEmpty">Dar neprikabinai nė vieno komentaro. Spustelėk ant bet kurios įtartinos vietos Luko puslapyje!</p>
+      <ul class="pin-list" id="pinList"></ul>
+      <div class="rail-footer">
+        <button type="button" class="small" id="jumpUnlock" style="width:100%">🔓 Suvesti mokytojo slaptažodį ↓</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Slaptažodžio atrakinimo skiltis -->
+  <section class="panel" id="unlockSection">
+    <h2>Patikrink atsakymus</h2>
+    <p class="hint">Kai sužymėsi visas pastebėtas saugumo ir DI problemas, suvesk mokytojo pasakytą slaptažodį – puslapyje atsidarys tikrieji atsakymai ir probleminių vietų paaiškinimai.</p>
+    <form class="pw-row" id="unlockForm">
+      <label for="pwInput"><b>Slaptažodis:</b></label>
+      <input type="text" id="pwInput" placeholder="Mokytojo slaptažodis" autocomplete="off" spellcheck="false">
+      <button type="submit" class="primary" id="unlockBtn">Atrakinti atsakymus</button>
+      <span id="pwMsg" role="status"></span>
+    </form>
+  </section>
+
+  <!-- Atsakymų suvestinė (rodoma atrakinus) -->
+  <section class="panel" id="answersSection" hidden>
+    <h2>Probleminės saugumo vietos Luko puslapyje</h2>
+    <p class="hint">Palygink savo prikabintus komentarus su visomis 9 probleminėmis vietomis. Paspaudęs „Rodyti puslapyje ↑“, pamatysi tą vietą išryškintą pačiame profilyje.</p>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="answers-grid" id="answersGrid"></div>
+    <div class="safe-explain" id="safeExplain"></div>
+  </section>
+
+  <section class="panel" id="reflectSection" hidden>
+    <h2>Įsivertink ir aptarkite</h2>
+    <label for="reflection"><b>Kuri saugumo klaida šiame puslapyje tau pasirodė pavojingiausia arba dažniausiai pasitaikanti realybėje? Ką verta patikrinti savo paskyrose?</b></label>
+    <textarea id="reflection" placeholder="Jūsų mintys ir išvados…" style="margin-top:8px"></textarea>
+  </section>
+
+  <div class="remember" id="rememberBox" hidden>
+    <small>Atsimink</small>
+    DI įrankiai gali klonuoti balsą ir veidą iš kelių viešų sekundžių, surinkti viešus duomenis tikslinėms apgaulėms ir įtikinamai klysti, o tai, ką įkeli į viešą DI pokalbį, gali tapti modelio apmokymo dalimi arba nutekėti.
+  </div>
+</main>
+
+<script>
+const KEY = "jkm-03-sauga-su-di";
+const UNLOCK_CODE = "JKM26";
+
+const ZONE_LABELS = {
+  "fb-topbar": "Viršutinė juosta",
+  "profile-header": "Profilio viršelis",
+  "profile-public": "Profilio antraštė",
+  "bio-osint": "Skiltis „Apie“",
+  "reels-voice": "Skiltis „Reels“",
+  "messenger-scam": "„Messenger“ pokalbis",
+  "post-safe-study-ai": "Įrašas: ruošimasis biologijos kontroliniui",
+  "post-gpt-leak": "Įrašas: „ChatGPT“ ir klasės kelionė",
+  "post-safe-sunset": "Įrašas: krepšinio aikštelė rudenį",
+  "post-faceswap": "Įrašas: „FaceSwap Ultra AI“",
+  "post-safe-neonz": "Įrašas: „NeonZ“ treniruotė",
+  "post-deepfake-ad": "Įrašas: „Lietuvos Jaunimo DI Fondas“",
+  "post-mushroom-ai": "Įrašas: miško grybai",
+  "post-safe-books": "Įrašas: knygų mainai",
+  "post-ai-slop": "Pasidalintas šuniuko įrašas"
+};
+
+const SAFE_POSTS = [
+  {
+    zone: "post-safe-study-ai",
+    rx: 0.94, ry: 0.14,
+    title: "Ruošimasis biologijos kontroliniui su DI",
+    why: "Visiškai saugu: DI čia naudojamas savarankiškam mokymuisi (klausinėjimui), neįkelti jokie asmens duomenys."
+  },
+  {
+    zone: "post-safe-sunset",
+    rx: 0.94, ry: 0.14,
+    title: "Rudens vakaras krepšinio aikštelėje",
+    why: "Įprastas kasdienis įrašas: nuotraukoje nėra namų adreso, dokumentų, pašalinių žmonių veidų ar kitos jautrios informacijos."
+  },
+  {
+    zone: "post-safe-neonz",
+    rx: 0.94, ry: 0.14,
+    title: "Kvietimas į mokyklos „NeonZ“ treniruotę",
+    why: "Įprastas kvietimas klasės draugams į mokyklos sporto būrelį – be jautrių asmens duomenų, įtartinų nuorodų ar DI grėsmių."
+  },
+  {
+    zone: "post-safe-books",
+    rx: 0.94, ry: 0.14,
+    title: "Knygos rekomendacija knygų mainų dienai",
+    why: "Saugus ir įprastas įrašas apie perskaitytą knygą bei mokyklos bibliotekos renginį – dalintis tokiais dalykais nieko blogo."
+  }
+];
+
+const PROBLEMS = [
+  {
+    id: "p1",
+    zone: "profile-public",
+    rx: 0.96, ry: 0.5,
+    cat: "Privatumas ir OSINT",
+    title: "Visiškai viešas profilis ir atviras draugų sąrašas",
+    why: "Profilis ir 842 draugų sąrašas yra vieši („🌐 Viešas profilis“), todėl įrašus bei ryšius gali matyti bet kas internete ir duomenis renkantys DI įrankiai. Matydami draugų bei šeimos narių sąrašą, sukčiai lengvai sužino, kuo apsimesti.",
+    tip: "Nustatyk profilį ir draugų sąrašą matomą tik draugams, o ne visiems internete."
+  },
+  {
+    id: "p2",
+    zone: "bio-osint",
+    rx: 0.94, ry: 0.14,
+    cat: "Kuras DI sukčiams",
+    title: "Skiltyje „Apie“ viešai paskelbti asmens duomenys ir šeimos rutina",
+    why: "Viešai matoma pilna gimimo data, tikslus namų adresas, telefonas, šuns vardas („Reksas“ – viena dažniausių slaptažodžių ir saugos klausimų detalių) bei tikslus laikas, kada visa šeima išvyksta į treniruotes (namai lieka tušti). DI įrankiai tokią informaciją akimirksniu sujungia slaptažodžių spėliojimui ir tikslinėms apgaulėms.",
+    tip: "Neviešink tikslaus namų adreso, telefono numerio, pilnos gimimo datos ir reguliaraus laiko, kada namuose nieko nebūna."
+  },
+  {
+    id: "p3",
+    zone: "reels-voice",
+    rx: 0.94, ry: 0.14,
+    cat: "Balso ir veido klonavimas",
+    title: "Viešas kalbančio veido įrašas su galimybe jį atsisiųsti",
+    why: "38 sekundžių viešas „Reels“ įrašas, kurį bet kas gali atsisiųsti („⬇ Atsisiųsti“), suteikia aiškų Luko balso ir veido pavyzdį. Šiuolaikiniams DI balso klonavimo bei „deepfake“ įrankiams pakanka vos kelių sekundžių, kad sukčiai paskambintų tėvams ar seneliams Luko balsu.",
+    tip: "Asmeninius balso bei vaizdo įrašus rodyk tik draugams ir išjunk galimybę juos atsisiųsti svetimiems."
+  },
+  {
+    id: "p4",
+    zone: "messenger-scam",
+    rx: 0.94, ry: 0.14,
+    cat: "Klonuotas balsas ir 2FA vagystė",
+    title: "Pasitikėjimas suklonuota balso žinute ir SMS patvirtinimo kodo siuntimas",
+    why: "Žinutė atėjo iš svetimos paskyros („Jūs nesate draugai“), o 8 sek. balso žinutę sukčiai galėjo lengvai sugeneruoti DI įrankiu iš Gabijos viešų įrašų. 6 skaitmenų SMS kodas (849201) yra paskyros atkūrimo / 2FA raktas – jį išsiuntęs Lukas atiduos savo paskyrą ir dar praras 35 €.",
+    tip: "Niekada ir niekam nesiųsk SMS patvirtinimo kodų. Jei draugas iš kitos paskyros prašo kodo ar pinigų – paskambink jam tikru numeriu arba paklausk gyvai."
+  },
+  {
+    id: "p5",
+    zone: "post-gpt-leak",
+    rx: 0.96, ry: 0.12,
+    cat: "Duomenų nutekinimas DI",
+    title: "Klasės draugų asmens duomenys ir mamos tyrimai įkelti į „ChatGPT“ bei paviešinti",
+    why: "Į „ChatGPT“ be sutikimo įkeltas klasės kelionės sąrašas su draugų asmens kodais, dokumentų numeriais bei telefonais ir mamos medicininiai tyrimai. Tokie duomenys pagal nutylėjimą gali būti naudojami modelio apmokymui, o pasidalijęs vieša nuoroda („chatgpt.com/share/…“) ir ekrano nuotrauka Lukas juos atvėrė visam internetui.",
+    tip: "Į „ChatGPT“ ir kitus DI įrankius nekelk asmens kodų, dokumentų, slaptažodžių ar medicininių išrašų, privatumo nustatymuose išjunk apmokymą iš tavo pokalbių ir neviešink bendrinamų pokalbių nuorodų su privačia informacija."
+  },
+  {
+    id: "p6",
+    zone: "post-faceswap",
+    rx: 0.96, ry: 0.12,
+    cat: "Sutikimas ir leidimai",
+    title: "Draugo nuotrauka įkelta į DI be sutikimo ir pertekliniai programėlės leidimai",
+    why: "1) Matas aiškiai prašė nekelti jo nuotraukų – kito žmogaus veido kėlimas į trečiųjų šalių DI programėlę be leidimo pažeidžia privatumą ir palieka biometrinį atvaizdą svetimuose serveriuose. 2) Nuotraukos filtrui nereikia prieigos prie visų 184 kontaktų, visos galerijos ir mikrofono.",
+    tip: "Nekelk kitų žmonių nuotraukų į DI be jų aiškaus sutikimo ir nesuteik programėlėms leidimų, kurie nebūtini jų funkcijai."
+  },
+  {
+    id: "p7",
+    zone: "post-deepfake-ad",
+    rx: 0.96, ry: 0.09,
+    cat: "„Deepfake“ ir banko viliojimas",
+    title: "DI suklastota („deepfake“) investicijų reklama ir „Smart-ID“ duomenų vagystė",
+    why: "Sukčiai su DI suklastoja žinomų TV vedėjų vaizdą ir balsą, žadėdami nerealų uždarbį (350 € per parą). Klastotę išduoda DI klaidos vaizde (6 pirštai ant rankos, užrašas „LIETUVOS BNAKAS“), dirbtinis skubinimas („liko 6 vietos“), netikras boto komentaras („Jonas_88392“) ir įtartina „lt-ismoka-di24.xyz“ nuoroda, prašanti „Smart-ID“.",
+    tip: "Garantuoto greito uždarbio nebūna: tikrink nuorodos adresą, vaizdo detales ir niekada nevesk „Smart-ID“ ar banko duomenų per reklamines nuorodas."
+  },
+  {
+    id: "p8",
+    zone: "post-mushroom-ai",
+    rx: 0.96, ry: 0.12,
+    cat: "DI haliucinacijos ir pataikavimas",
+    title: "Aklas pasitikėjimas DI atpažįstant miško grybus ir menantis klausimas",
+    why: "Nuotraukoje matomi mirtinai nuodingos žalsvosios musmirės požymiai (žalsva kepurėlė, sijonėlis ant koto, išnara apačioje), tačiau Lukas uždavė menantį klausimą („Čia juk valgomi pievagrybiai, ane?“). DI modeliai linkę pataikauti vartotojo prielaidai ir gali užtikrintai klysti.",
+    tip: "Sveikatos, vaistų, grybų ar saugumo klausimais niekada nepasitikėk vien DI atsakymu – DI gali skambėti 100 % užtikrintai ir mirtinai klysti."
+  },
+  {
+    id: "p9",
+    zone: "post-ai-slop",
+    rx: 0.96, ry: 0.1,
+    cat: "„AI slop“ ir slaptažodžių vagystė",
+    title: "DI sugeneruotas emocinis jaukas (5 kojų šuniukas) ir suklastotas „Facebook“ prisijungimas",
+    why: "Sukčiai masiškai generuoja graudžius DI paveikslėlius (įsižiūrėjus šuniukas turi 5 kojas), kad sukeltų gailestį ir išjungtų budrumą. Nuoroda „facebook.parama-balsas.top“ nėra tikras „Facebook“ – tai duomenų viliojimo (phishing) puslapis, vagiantis prisijungimo duomenis iš „balsuojančių“ žmonių.",
+    tip: "Pastebėjęs emocinį spaudimą dalintis ar balsuoti, patikrink vaizdo detales ir visada tikrink tikrąjį svetainės domeną prieš suvesdamas prisijungimo duomenis."
+  }
+];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const fbStage = $("fbStage");
+const pinLayer = $("pinLayer");
+const pinPopover = $("pinPopover");
+
+function fresh() {
+  return { pins: [], unlocked: false, reflection: "", nextId: 1 };
+}
+
+let S = load() || fresh();
+// Aktyvus atidarytas komentaras: { kind: 'draft'|'student'|'answer', id?, zone?, rx?, ry? }
+let openPop = null;
+let filterMode = "both"; // 'both' | 'answers' | 'mine'
+let pinningWhileUnlocked = false;
+
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (raw && Array.isArray(raw.pins)) {
+      return {
+        pins: raw.pins.filter(p => p && typeof p.zone === "string" && typeof p.rx === "number" && typeof p.ry === "number" && typeof p.text === "string"),
+        unlocked: !!raw.unlocked,
+        reflection: raw.reflection || "",
+        nextId: raw.nextId || (raw.pins.length + 1)
+      };
+    }
+  } catch (e) {}
+  return null;
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(S));
+  } catch (e) {}
+}
+
+// Konvertuoja zonos (rx, ry) į pikselius fbStage atžvilgiu
+function stageCoords(zone, rx, ry) {
+  const sr = fbStage.getBoundingClientRect();
+  const zEl = fbStage.querySelector(`[data-zone="${zone}"]`) || fbStage;
+  const zr = zEl.getBoundingClientRect();
+  return {
+    x: (zr.left - sr.left) + rx * zr.width,
+    y: (zr.top - sr.top) + ry * zr.height
+  };
+}
+
+// Iš paspaudimo taško randa tiksliausią data-zone ir santykines koordinates
+function pointToZone(clientX, clientY, targetEl) {
+  const zEl = (targetEl && targetEl.closest && targetEl.closest("[data-zone]")) || fbStage;
+  const zone = zEl.dataset.zone || "fb-topbar";
+  const zr = zEl.getBoundingClientRect();
+  const clamp = v => Math.min(0.985, Math.max(0.015, v));
+  return {
+    zone,
+    rx: zr.width ? clamp((clientX - zr.left) / zr.width) : 0.5,
+    ry: zr.height ? clamp((clientY - zr.top) / zr.height) : 0.5
+  };
+}
+
+// Patikrina, kuriai probleminei zonai priklauso mokinio smeigtukas
+function matchedProblemForPin(pin) {
+  const direct = PROBLEMS.find(p => p.zone === pin.zone);
+  if (direct) return direct;
+  // Jei paspausta tiesiai ant bet kurio įprasto saugaus įrašo – nelaikome gretima problemine zona
+  if (SAFE_POSTS.some(s => s.zone === pin.zone)) return null;
+
+  const pt = stageCoords(pin.zone, pin.rx, pin.ry);
+  const sr = fbStage.getBoundingClientRect();
+  const pad = 24;
+  let best = null;
+  let bestArea = Infinity;
+  for (const p of PROBLEMS) {
+    const el = fbStage.querySelector(`[data-zone="${p.zone}"]`);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    const left = r.left - sr.left - pad;
+    const right = r.right - sr.left + pad;
+    const top = r.top - sr.top - pad;
+    const bottom = r.bottom - sr.top + pad;
+    if (pt.x >= left && pt.x <= right && pt.y >= top && pt.y <= bottom) {
+      const area = r.width * r.height;
+      if (area < bestArea) { best = p; bestArea = area; }
+    }
+  }
+  return best;
+}
+
+function pinsForProblem(prob) {
+  return S.pins
+    .map((pin, idx) => ({ pin, num: idx + 1 }))
+    .filter(({ pin }) => matchedProblemForPin(pin)?.id === prob.id);
+}
+
+// Iššokančios kortelės išsaugojimas / uždarymas prieš kitą veiksmą
+function commitAndClosePopover() {
+  if (!openPop) return;
+  const ta = pinPopover.querySelector("textarea");
+  if (openPop.kind === "draft" && ta) {
+    const val = ta.value.trim();
+    if (val) {
+      S.pins.push({ id: S.nextId++, zone: openPop.zone, rx: openPop.rx, ry: openPop.ry, text: val });
+      save();
+    }
+  } else if (openPop.kind === "student" && ta) {
+    const p = S.pins.find(x => x.id === openPop.id);
+    const val = ta.value.trim();
+    if (p && val && val !== p.text) {
+      p.text = val;
+      save();
+    }
+  }
+  openPop = null;
+  pinPopover.hidden = true;
+}
+
+function positionPopover(x, y, isAnswer = false) {
+  const sw = fbStage.clientWidth;
+  const sh = fbStage.clientHeight;
+  const pw = pinPopover.offsetWidth || 300;
+  const ph = pinPopover.offsetHeight || 190;
+  const leftFlipGap = isAnswer ? 34 : 16;
+  let left = x + 16;
+  if (left + pw > sw - 12) left = Math.max(12, x - pw - leftFlipGap);
+  let top = Math.max(12, y - 20);
+  if (top + ph > sh - 12) top = Math.max(12, sh - ph - 12);
+  pinPopover.style.left = left + "px";
+  pinPopover.style.top = top + "px";
+}
+
+function renderPopover() {
+  if (!openPop) {
+    pinPopover.hidden = true;
+    return;
+  }
+  pinPopover.hidden = false;
+
+  if (openPop.kind === "draft" || openPop.kind === "student") {
+    const isDraft = openPop.kind === "draft";
+    const idx = isDraft ? S.pins.length + 1 : S.pins.findIndex(x => x.id === openPop.id) + 1;
+    const pinObj = isDraft ? openPop : S.pins.find(x => x.id === openPop.id);
+    if (!pinObj) { openPop = null; pinPopover.hidden = true; return; }
+    const zName = ZONE_LABELS[pinObj.zone] || "Puslapio vieta";
+    pinPopover.innerHTML = `
+      <div class="pop-head">
+        <strong>📌 Komentaras #${idx}</strong>
+        <button type="button" class="pop-close" id="popClose" aria-label="Uždaryti">×</button>
+      </div>
+      <div class="pop-zone">${esc(zName)}</div>
+      <label for="popText" class="hint" style="display:block;margin-bottom:4px">Kodėl čia matai saugumo ar DI problemą?</label>
+      <textarea id="popText" placeholder="Pvz.: Čia matau problemą, nes…">${esc(pinObj.text || "")}</textarea>
+      <div class="pop-actions">
+        ${isDraft
+          ? `<button type="button" class="small" id="popCancel">Atšaukti</button>`
+          : `<button type="button" class="small danger" id="popDelete">Ištrinti</button>`}
+        <button type="button" class="small primary" id="popSave">Išsaugoti</button>
+      </div>`;
+
+    const coords = stageCoords(pinObj.zone, pinObj.rx, pinObj.ry);
+    positionPopover(coords.x, coords.y);
+
+    const ta = $("popText");
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+
+    $("popClose").addEventListener("click", () => { commitAndClosePopover(); renderAll(); });
+    $("popSave").addEventListener("click", () => {
+      const val = ta.value.trim();
+      if (!val) { ta.focus(); return; }
+      if (isDraft) {
+        S.pins.push({ id: S.nextId++, zone: openPop.zone, rx: openPop.rx, ry: openPop.ry, text: val });
+      } else {
+        pinObj.text = val;
+      }
+      openPop = null;
+      save();
+      renderAll();
+    });
+    ta.addEventListener("keydown", e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        $("popSave").click();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        openPop = null;
+        renderAll();
+      }
+    });
+    if (isDraft) {
+      $("popCancel").addEventListener("click", () => { openPop = null; renderAll(); });
+    } else {
+      ta.addEventListener("input", () => {
+        const val = ta.value.trim();
+        if (val) { pinObj.text = val; save(); renderRail(); }
+      });
+      $("popDelete").addEventListener("click", () => {
+        S.pins = S.pins.filter(x => x.id !== pinObj.id);
+        openPop = null;
+        save();
+        renderAll();
+      });
+    }
+  } else if (openPop.kind === "answer") {
+    const probIdx = PROBLEMS.findIndex(p => p.id === openPop.id);
+    const prob = PROBLEMS[probIdx];
+    if (!prob) { openPop = null; pinPopover.hidden = true; return; }
+    const hits = pinsForProblem(prob);
+    const echoHtml = hits.length
+      ? `<div class="pop-student-echo"><b>Tavo komentaras šioje vietoje:</b><br>${hits.map(h => `#${h.num}: „${esc(h.pin.text)}“`).join("<br>")}</div>`
+      : `<div class="pop-student-echo">Šios vietos dar nebuvai pažymėjęs(-usi).</div>`;
+
+    pinPopover.innerHTML = `
+      <div class="pop-head">
+        <strong>⚠ Probleminė vieta !${probIdx + 1}</strong>
+        <button type="button" class="pop-close" id="popClose" aria-label="Uždaryti">×</button>
+      </div>
+      <span class="pop-answer-tag">${esc(prob.cat)}</span>
+      <div class="pop-answer-body">
+        <p><b>${esc(prob.title)}</b></p>
+        <p>${esc(prob.why)}</p>
+        <div class="pop-safe-tip"><b>Kaip saugiau:</b> ${esc(prob.tip)}</div>
+        ${echoHtml}
+      </div>`;
+
+    const coords = stageCoords(prob.zone, prob.rx, prob.ry);
+    positionPopover(coords.x, coords.y, true);
+    $("popClose").addEventListener("click", () => { openPop = null; renderAll(); });
+  } else if (openPop.kind === "safe") {
+    const safeObj = SAFE_POSTS.find(s => s.zone === openPop.zone);
+    if (!safeObj) { openPop = null; pinPopover.hidden = true; return; }
+    pinPopover.innerHTML = `
+      <div class="pop-head">
+        <strong style="color:var(--ok)">✓ Saugus įrašas</strong>
+        <button type="button" class="pop-close" id="popClose" aria-label="Uždaryti">×</button>
+      </div>
+      <div class="pop-answer-body">
+        <p><b>${esc(safeObj.title)}</b></p>
+        <div class="pop-safe-tip">${esc(safeObj.why)}</div>
+      </div>`;
+    const coords = stageCoords(safeObj.zone, safeObj.rx, safeObj.ry);
+    positionPopover(coords.x, coords.y, false);
+    $("popClose").addEventListener("click", () => { openPop = null; renderAll(); });
+  }
+}
+
+function renderPins() {
+  pinLayer.innerHTML = "";
+  const showMine = !S.unlocked || filterMode !== "answers";
+  const showAns = S.unlocked && filterMode !== "mine";
+  const studentCoords = [];
+
+  if (showMine) {
+    S.pins.forEach((pin, i) => {
+      const c = stageCoords(pin.zone, pin.rx, pin.ry);
+      studentCoords.push(c);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pin-marker student" + (openPop?.kind === "student" && openPop.id === pin.id ? " active" : "");
+      btn.style.left = c.x + "px";
+      btn.style.top = c.y + "px";
+      btn.textContent = String(i + 1);
+      btn.title = `#${i + 1}: ${pin.text}`;
+      btn.setAttribute("aria-label", `Komentaras ${i + 1}: ${pin.text}`);
+      bindStudentPinDragOrClick(btn, pin);
+      pinLayer.appendChild(btn);
+    });
+
+    if (openPop?.kind === "draft") {
+      const c = stageCoords(openPop.zone, openPop.rx, openPop.ry);
+      const draftBtn = document.createElement("button");
+      draftBtn.type = "button";
+      draftBtn.className = "pin-marker draft active";
+      draftBtn.style.left = c.x + "px";
+      draftBtn.style.top = c.y + "px";
+      draftBtn.textContent = String(S.pins.length + 1);
+      draftBtn.setAttribute("aria-label", "Naujas komentaras");
+      pinLayer.appendChild(draftBtn);
+    }
+  }
+
+  if (showAns) {
+    PROBLEMS.forEach((prob, i) => {
+      const c = stageCoords(prob.zone, prob.rx, prob.ry);
+      // Jei mokinio smeigtukas labai arti, pastumiame atsakymo smeigtuką į šoną, kad neuždengtų
+      let ax = c.x;
+      const ay = c.y;
+      if (studentCoords.some(sc => Math.hypot(sc.x - ax, sc.y - ay) < 28)) {
+        ax = Math.max(30, ax - 32);
+      }
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pin-marker answer" + (openPop?.kind === "answer" && openPop.id === prob.id ? " active" : "");
+      btn.style.left = ax + "px";
+      btn.style.top = ay + "px";
+      btn.textContent = "!" + (i + 1);
+      btn.title = `Atsakymas !${i + 1}: ${prob.title}`;
+      btn.setAttribute("aria-label", `Probleminė vieta ${i + 1}: ${prob.title}`);
+      btn.addEventListener("pointerdown", e => e.stopPropagation());
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        if (openPop?.kind === "answer" && openPop.id === prob.id) {
+          openPop = null;
+        } else {
+          commitAndClosePopover();
+          openPop = { kind: "answer", id: prob.id };
+        }
+        renderAll();
+      });
+      pinLayer.appendChild(btn);
+    });
+  }
+}
+
+function bindStudentPinDragOrClick(btn, pin) {
+  btn.addEventListener("pointerdown", e => {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragged = false;
+    btn.setPointerCapture(e.pointerId);
+
+    const onMove = ev => {
+      if (Math.hypot(ev.clientX - startX, ev.clientY - startY) >= 6) {
+        dragged = true;
+        if (openPop) { commitAndClosePopover(); }
+        const sr = fbStage.getBoundingClientRect();
+        btn.style.left = Math.max(8, Math.min(sr.width - 8, ev.clientX - sr.left)) + "px";
+        btn.style.top = Math.max(8, Math.min(sr.height - 8, ev.clientY - sr.top)) + "px";
+      }
+    };
+    const onUp = ev => {
+      btn.removeEventListener("pointermove", onMove);
+      btn.removeEventListener("pointerup", onUp);
+      btn.removeEventListener("pointercancel", onUp);
+      if (dragged) {
+        btn.style.visibility = "hidden";
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        btn.style.visibility = "";
+        if (under && fbStage.contains(under)) {
+          const z = pointToZone(ev.clientX, ev.clientY, under);
+          pin.zone = z.zone;
+          pin.rx = z.rx;
+          pin.ry = z.ry;
+          save();
+        }
+        renderAll();
+      } else {
+        if (openPop?.kind === "student" && openPop.id === pin.id) {
+          commitAndClosePopover();
+        } else {
+          commitAndClosePopover();
+          openPop = { kind: "student", id: pin.id };
+        }
+        renderAll();
+      }
+    };
+    btn.addEventListener("pointermove", onMove);
+    btn.addEventListener("pointerup", onUp);
+    btn.addEventListener("pointercancel", onUp);
+  });
+}
+
+function renderRail() {
+  $("pinCount").textContent = String(S.pins.length);
+  $("railEmpty").hidden = S.pins.length > 0;
+  const list = $("pinList");
+  list.innerHTML = S.pins.map((pin, i) => {
+    const active = openPop?.kind === "student" && openPop.id === pin.id;
+    const zName = ZONE_LABELS[pin.zone] || "Puslapio vieta";
+    return `<li class="pin-item${active ? " active" : ""}" data-pid="${pin.id}">
+      <div class="pin-item-top">
+        <span class="pin-badge-sm">${i + 1}</span>
+        <span>${esc(zName)}</span>
+      </div>
+      <p class="pin-item-text">${esc(pin.text)}</p>
+    </li>`;
+  }).join("");
+
+  list.querySelectorAll("[data-pid]").forEach(item => {
+    item.addEventListener("click", () => {
+      const id = +item.dataset.pid;
+      const pin = S.pins.find(x => x.id === id);
+      if (!pin) return;
+      commitAndClosePopover();
+      if (filterMode === "answers") filterMode = "both";
+      openPop = { kind: "student", id };
+      renderAll();
+      const zEl = fbStage.querySelector(`[data-zone="${pin.zone}"]`) || fbStage;
+      zEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+
+  $("jumpUnlock").textContent = S.unlocked ? "✓ Atsakymai atrakinti – žiūrėti suvestinę ↓" : "🔓 Suvesti mokytojo slaptažodį ↓";
+}
+
+function renderZonesState() {
+  const showAns = S.unlocked && filterMode !== "mine";
+  fbStage.classList.toggle("show-answers", showAns);
+  const canPin = !S.unlocked || pinningWhileUnlocked;
+  fbStage.classList.toggle("pinning-mode", canPin);
+
+  const badge = $("modeBadge");
+  if (!S.unlocked) {
+    badge.textContent = "📌 Spausk ant puslapio ir komentuok";
+    badge.classList.remove("review");
+  } else if (pinningWhileUnlocked) {
+    badge.textContent = "📌 Komentarų pridėjimo režimas";
+    badge.classList.remove("review");
+  } else {
+    badge.textContent = "🔍 Peržiūros režimas – spausk ant raudonų zonų";
+    badge.classList.add("review");
+  }
+
+  PROBLEMS.forEach(p => {
+    const el = fbStage.querySelector(`[data-zone="${p.zone}"]`);
+    if (el) el.classList.toggle("is-problem-revealed", S.unlocked);
+  });
+  SAFE_POSTS.forEach(s => {
+    const el = fbStage.querySelector(`[data-zone="${s.zone}"]`);
+    if (el) el.classList.toggle("is-safe-revealed", S.unlocked);
+  });
+}
+
+function renderUnlockedSections() {
+  $("unlockedBanner").hidden = !S.unlocked;
+  $("filterGroup").hidden = !S.unlocked;
+  $("togglePinMode").hidden = !S.unlocked;
+  $("togglePinMode").textContent = pinningWhileUnlocked ? "✓ Baigti pridėjimą" : "✎ Pridėti dar komentarų";
+  $("togglePinMode").classList.toggle("primary", pinningWhileUnlocked);
+
+  document.querySelectorAll("#filterGroup button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.filter === filterMode));
+  });
+
+  $("unlockSection").hidden = S.unlocked;
+  $("answersSection").hidden = !S.unlocked;
+  $("reflectSection").hidden = !S.unlocked;
+  $("rememberBox").hidden = !S.unlocked;
+
+  if (!S.unlocked) return;
+
+  const caughtCount = PROBLEMS.filter(p => pinsForProblem(p).length > 0).length;
+  $("statsRow").innerHTML = `
+    <div class="stat-card found"><b>${caughtCount} / ${PROBLEMS.length}</b>pažymėta probleminių vietų</div>
+    <div class="stat-card"><b>${S.pins.length}</b>iš viso tavo komentarų</div>`;
+
+  $("answersGrid").innerHTML = PROBLEMS.map((prob, i) => {
+    const hits = pinsForProblem(prob);
+    const caught = hits.length > 0;
+    return `<article class="ans-card${caught ? " caught" : ""}">
+      <div class="ans-top">
+        <span class="ans-num">!${i + 1} · ${esc(prob.cat)}</span>
+        <span class="status-pill ${caught ? "hit" : "miss"}">${caught ? "✓ Pažymėjai" : "○ Nepažymėta"}</span>
+      </div>
+      <h3>${esc(prob.title)}</h3>
+      <p>${esc(prob.why)}</p>
+      <p class="hint"><b>Kaip saugiau:</b> ${esc(prob.tip)}</p>
+      ${caught ? `<div class="ans-yours"><b>Tavo komentaras:</b> ${hits.map(h => `#${h.num} „${esc(h.pin.text)}“`).join(" · ")}</div>` : ""}
+      <button type="button" class="small jump-btn" data-jump="${prob.id}">Rodyti puslapyje ↑</button>
+    </article>`;
+  }).join("");
+
+  $("answersGrid").querySelectorAll("[data-jump]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const prob = PROBLEMS.find(p => p.id === btn.dataset.jump);
+      if (!prob) return;
+      commitAndClosePopover();
+      if (filterMode === "mine") filterMode = "both";
+      openPop = { kind: "answer", id: prob.id };
+      renderAll();
+      const zEl = fbStage.querySelector(`[data-zone="${prob.zone}"]`) || fbStage;
+      zEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+
+  const safePins = S.pins
+    .map((pin, idx) => ({ pin, num: idx + 1 }))
+    .filter(({ pin }) => SAFE_POSTS.some(s => s.zone === pin.zone));
+  $("safeExplain").innerHTML = `<b>✓ Saugūs, įprasti įrašai sienoje (${SAFE_POSTS.length}):</b> pasikartojimas su DI prieš biologijos kontrolinį, vakaro krepšinio aikštelė, kvietimas draugams į „NeonZ“ treniruotę ir knygos rekomendacija knygų mainams. Juose nėra jautrių asmens duomenų, svetimų nuotraukų be sutikimo, įtartinų nuorodų ar neatsakingo DI naudojimo – tokiais įrašais dalintis nieko blogo.` +
+    (safePins.length ? `<br><span class="hint">Pastaba: buvai pažymėjęs(-usi) ir saugų įrašą (${safePins.map(s => `#${s.num} „${esc(s.pin.text)}“`).join(", ")}) – palygink, kuo jis skiriasi nuo probleminių įrašų!</span>` : "");
+
+  $("reflection").value = S.reflection || "";
+}
+
+function renderAll() {
+  renderZonesState();
+  renderPins();
+  renderPopover();
+  renderRail();
+  renderUnlockedSections();
+}
+
+// Paspaudimas ant Facebook drobės (skiria paspaudimą nuo slinkimo pirštu)
+let stageDown = null;
+fbStage.addEventListener("pointerdown", e => {
+  if (e.button !== undefined && e.button !== 0) return;
+  if (pinPopover.contains(e.target) || e.target.closest(".pin-marker")) return;
+  stageDown = { x: e.clientX, y: e.clientY };
+});
+
+fbStage.addEventListener("pointerup", e => {
+  if (!stageDown) return;
+  const moved = Math.hypot(e.clientX - stageDown.x, e.clientY - stageDown.y);
+  stageDown = null;
+  if (moved >= 6) return;
+  if (pinPopover.contains(e.target) || e.target.closest(".pin-marker")) return;
+
+  // Jei buvo atidaryta kortelė, pirmas paspaudimas šalia ją išsaugo ir uždaro
+  if (openPop) {
+    commitAndClosePopover();
+    renderAll();
+    return;
+  }
+
+  // Jei atsakymai atrakinti ir nesame įjungę papildymo režimo – paspaudus ant zonos atidaromas paaiškinimas
+  if (S.unlocked && !pinningWhileUnlocked) {
+    const zEl = e.target.closest("[data-zone]");
+    const prob = zEl && PROBLEMS.find(p => p.zone === zEl.dataset.zone);
+    const safeObj = zEl && SAFE_POSTS.find(s => s.zone === zEl.dataset.zone);
+    if (prob && filterMode !== "mine") {
+      openPop = { kind: "answer", id: prob.id };
+      renderAll();
+    } else if (safeObj && filterMode !== "mine") {
+      openPop = { kind: "safe", zone: safeObj.zone };
+      renderAll();
+    }
+    return;
+  }
+
+  if (filterMode === "answers") filterMode = "both";
+  const z = pointToZone(e.clientX, e.clientY, e.target);
+  openPop = { kind: "draft", zone: z.zone, rx: z.rx, ry: z.ry, text: "" };
+  renderAll();
+});
+
+// Keičiantis lango dydžiui perskaičiuojame smeigtukų vietas
+if (typeof ResizeObserver !== "undefined") {
+  let raf = 0;
+  new ResizeObserver(() => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      renderPins();
+      if (openPop && !pinPopover.hidden) {
+        const src = openPop.kind === "answer"
+          ? PROBLEMS.find(p => p.id === openPop.id)
+          : openPop.kind === "safe"
+            ? SAFE_POSTS.find(s => s.zone === openPop.zone)
+            : openPop.kind === "student" ? S.pins.find(x => x.id === openPop.id) : openPop;
+        if (src) {
+          const c = stageCoords(src.zone, src.rx, src.ry);
+          positionPopover(c.x, c.y, openPop.kind === "answer");
+        }
+      }
+    });
+  }).observe(fbStage);
+}
+
+// Slaptažodžio tikrinimas
+$("unlockForm").addEventListener("submit", e => {
+  e.preventDefault();
+  commitAndClosePopover();
+  const val = $("pwInput").value.trim().toUpperCase();
+  const msg = $("pwMsg");
+  if (!val) {
+    msg.className = "msg-bad";
+    msg.textContent = "Įvesk slaptažodį.";
+    return;
+  }
+  if (val !== UNLOCK_CODE) {
+    msg.className = "msg-bad";
+    msg.textContent = "Neteisingas slaptažodis. Kai baigsi užduotį, paklausk mokytojo.";
+    return;
+  }
+  msg.className = "msg-ok";
+  msg.textContent = "";
+  $("pwInput").value = "";
+  S.unlocked = true;
+  pinningWhileUnlocked = false;
+  filterMode = "both";
+  save();
+  renderAll();
+  $("unlockedBanner").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+$("jumpUnlock").addEventListener("click", () => {
+  commitAndClosePopover();
+  renderAll();
+  const target = S.unlocked ? $("answersSection") : $("unlockSection");
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!S.unlocked) setTimeout(() => $("pwInput").focus(), 350);
+});
+
+$("scrollSummary").addEventListener("click", () => {
+  $("answersSection").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+$("togglePinMode").addEventListener("click", () => {
+  commitAndClosePopover();
+  pinningWhileUnlocked = !pinningWhileUnlocked;
+  if (pinningWhileUnlocked && filterMode === "answers") filterMode = "both";
+  renderAll();
+});
+
+document.querySelectorAll("#filterGroup button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    commitAndClosePopover();
+    filterMode = btn.dataset.filter;
+    if (filterMode === "answers") pinningWhileUnlocked = false;
+    renderAll();
+  });
+});
+
+$("reflection").addEventListener("input", e => {
+  S.reflection = e.target.value;
+  save();
+});
+
+$("reset").addEventListener("click", () => {
+  if (!confirm("Pradėti iš naujo? Visi tavo komentarai ir atrakinimas bus ištrinti.")) return;
+  openPop = null;
+  pinningWhileUnlocked = false;
+  filterMode = "both";
+  S = fresh();
+  stopTimer();
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  renderAll();
+});
+
+// 15 min laikmatis
+let timerId = null;
+const timerEl = $("timer");
+const startBtn = $("startTimer");
+function stopTimer() {
+  clearInterval(timerId);
+  timerId = null;
+  timerEl.textContent = "15:00";
+  timerEl.classList.remove("over");
+  startBtn.textContent = "▶ Pradėti 15 min";
+}
+startBtn.addEventListener("click", () => {
+  if (timerId) return stopTimer();
+  const end = Date.now() + 15 * 60 * 1000;
+  startBtn.textContent = "■ Sustabdyti";
+  const tick = () => {
+    const left = Math.round((end - Date.now()) / 1000);
+    const a = Math.abs(left);
+    timerEl.textContent = (left < 0 ? "−" : "") + Math.floor(a / 60) + ":" + String(a % 60).padStart(2, "0");
+    timerEl.classList.toggle("over", left < 0);
+  };
+  tick();
+  timerId = setInterval(tick, 500);
+});
+
+renderAll();
+</script>
+</body>
+</html>

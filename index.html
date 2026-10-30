@@ -15,6 +15,9 @@
   main { max-width: 720px; margin: 0 auto; padding: 32px 16px 48px; }
   h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 36px); }
   p { margin: 0 0 20px; color: var(--muted); }
+  .lesson { margin-top: 22px; }
+  .lesson:first-of-type { margin-top: 0; }
+  .lesson h2 { margin: 0 0 10px; font-size: 18px; }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
   a {
     display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
@@ -44,38 +47,54 @@
 <main>
   <h1>JKM užduotys</h1>
   <p>Interaktyvios pamokų užduotys</p>
-  <ul>
-    <li>
-      <a href="02-rezultatas-ar-augimas/" data-key="jkm-02-rezultatas-augimas">
-        <small>2 tema · Poroje · 5 min</small>
-        <b>Rezultatas ar augimas?</b> – išdėliokite 10 kortelių: dešinėn rezultatas, aukštyn augimas
-      </a>
-    </li>
-    <li>
-      <a href="02-atspek-uzklausa/" data-key="jkm-02-atspek-uzklausa">
-        <small>2 tema · Žaidimas · 5 min</small>
-        <b>Atspėk užklausą</b> – kuris NeonZ kvietimas gautas iš trumpos užklausos?
-      </a>
-    </li>
-    <li>
-      <a href="02-uzklausu-aukcionas/" data-key="jkm-02-uzklausu-aukcionas-v2">
-        <small>2 tema · Individualiai · 15 min</small>
-        <b>Užklausų aukcionas</b> – už 100 taškų pirk užklausos dalis ir technikas, klasė balsuoja už geriausią rezultatą
-      </a>
-    </li>
-    <li>
-      <a href="02-uzklausu-golfas/" data-key="jkm-02-uzklausu-golfas">
-        <small>2 tema · Individualiai · 15 min</small>
-        <b>Užklausų golfas</b> – atkurk mokytojo tekstą kuo trumpesne užklausa
-      </a>
-    </li>
-    <li>
-      <a href="02-ab-eksperimentas/" data-key="jkm-02-ab-eksperimentas">
-        <small>2 tema · Individualiai · 20 min</small>
-        <b>A/B eksperimentas</b> – išbandyk 3 atsitiktines technikas po vieną ir visas kartu, įvertink aklai
-      </a>
-    </li>
-  </ul>
+
+  <section class="lesson">
+    <h2>2 pamoka</h2>
+    <ul>
+      <li>
+        <a href="02-rezultatas-ar-augimas/" data-key="jkm-02-rezultatas-augimas">
+          <small>2 pamoka · Poroje · 5 min</small>
+          <b>Rezultatas ar augimas?</b> – išdėliokite 10 kortelių: dešinėn rezultatas, aukštyn augimas
+        </a>
+      </li>
+      <li>
+        <a href="02-atspek-uzklausa/" data-key="jkm-02-atspek-uzklausa">
+          <small>2 pamoka · Žaidimas · 5 min</small>
+          <b>Atspėk užklausą</b> – kuris NeonZ kvietimas gautas iš trumpos užklausos?
+        </a>
+      </li>
+      <li>
+        <a href="02-uzklausu-aukcionas/" data-key="jkm-02-uzklausu-aukcionas-v2">
+          <small>2 pamoka · Individualiai · 15 min</small>
+          <b>Užklausų aukcionas</b> – už 100 taškų pirk užklausos dalis ir technikas, klasė balsuoja už geriausią rezultatą
+        </a>
+      </li>
+      <li>
+        <a href="02-uzklausu-golfas/" data-key="jkm-02-uzklausu-golfas">
+          <small>2 pamoka · Individualiai · 15 min</small>
+          <b>Užklausų golfas</b> – atkurk mokytojo tekstą kuo trumpesne užklausa
+        </a>
+      </li>
+      <li>
+        <a href="02-ab-eksperimentas/" data-key="jkm-02-ab-eksperimentas">
+          <small>2 pamoka · Individualiai · 20 min</small>
+          <b>A/B eksperimentas</b> – išbandyk 3 atsitiktines technikas po vieną ir visas kartu, įvertink aklai
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="lesson">
+    <h2>3 pamoka</h2>
+    <ul>
+      <li>
+        <a href="03-sauga-su-di/" data-key="jkm-03-sauga-su-di">
+          <small>3 pamoka · Individualiai ar poroje · 15 min</small>
+          <b>Sauga su DI</b> – Luko „Facebook“ puslapyje sužymėk komentarais vietas, kur matai saugumo ir DI problemas
+        </a>
+      </li>
+    </ul>
+  </section>
 
   <section class="progress">
     <h2>Mano progresas</h2>
